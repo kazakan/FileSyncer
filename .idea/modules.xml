@@ -3,6 +3,9 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/FileSyncer.main.iml" filepath="$PROJECT_DIR$/.idea/modules/FileSyncer.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/FileSyncer.test.iml" filepath="$PROJECT_DIR$/.idea/modules/FileSyncer.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/IdeaProjects.FileSyncer.main.iml" filepath="$PROJECT_DIR$/.idea/modules/IdeaProjects.FileSyncer.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/IdeaProjects.FileSyncer.test.iml" filepath="$PROJECT_DIR$/.idea/modules/IdeaProjects.FileSyncer.test.iml" />
     </modules>
   </component>
 </project>
