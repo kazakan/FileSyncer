@@ -1,21 +1,27 @@
 plugins {
-    `kotlin-dsl`
-    id("org.jlleitschuh.gradle.ktlint") version "11.3.1"
+  `kotlin-dsl`
+  id("com.diffplug.spotless") version "6.18.0"
 }
 
-repositories {
-    mavenCentral()
-}
+repositories { mavenCentral() }
 
-tasks.test {
-    useJUnitPlatform()
-}
+tasks.test { useJUnitPlatform() }
 
 dependencies {
-    implementation("org.eclipse.jetty:jetty-server:11.0.14")
-    implementation("org.eclipse.jetty:jetty-servlet:11.0.14")
-    implementation("org.eclipse.jetty:jetty-servlets:11.0.14")
-    compileOnly("jakarta.servlet:jakarta.servlet-api:6.0.0")
+  implementation("org.eclipse.jetty:jetty-server:11.0.14")
+  implementation("org.eclipse.jetty:jetty-servlet:11.0.14")
+  implementation("org.eclipse.jetty:jetty-servlets:11.0.14")
+  implementation("org.eclipse.jetty:apache-jsp:11.0.14")
 
-    testImplementation(kotlin("test"))
+  testImplementation(kotlin("test"))
+}
+
+configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+  kotlin { ktfmt() }
+  kotlinGradle { ktfmt() }
+  javascript {
+    target("src/**/*.js")
+
+    prettier()
+  }
 }
