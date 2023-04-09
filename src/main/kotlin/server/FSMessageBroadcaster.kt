@@ -3,5 +3,5 @@ package server
 import message.FSMessage
 
 interface FSMessageBroadcaster<T : FSMessage> {
-  fun broadcast(msg: T)
+    fun broadcast(msg: T)
 }
