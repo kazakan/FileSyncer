@@ -29,9 +29,11 @@ class Client : FSEventMessageHandler, FSClientFrontInterface {
 
     var waitingLoginRequest = REQUEST_STATE.NOT_WAITING
     var waitingRegisterRequest = REQUEST_STATE.NOT_WAITING
+    var waitingListFolderRequest = REQUEST_STATE.NOT_WAITING
 
     var _id = ""
     var _passwd = ""
+    var _cloudFileLists: List<String> = mutableListOf()
 
     fun start() {
         webfront.start()
@@ -73,6 +75,10 @@ class Client : FSEventMessageHandler, FSClientFrontInterface {
             }
             FMEVENT_TYPE.REGISTER_REJECTED -> {
                 waitingRegisterRequest = REQUEST_STATE.REJECTED
+            }
+            FMEVENT_TYPE.LISTFOLDER_RESPONSE -> {
+                waitingListFolderRequest = REQUEST_STATE.GRANTED
+                _cloudFileLists = msg.fileListField.strs.toList()
             }
             else -> {
                 // TODO("Raise error or ..")
@@ -168,14 +174,36 @@ class Client : FSEventMessageHandler, FSClientFrontInterface {
     }
 
     override fun showFolder(dir: String): List<Map<String, String>> {
-        // TODO("implement")
+        // TODO("implement loading local files")
+        val localFiles = listOf("bbb.txt", "ccc.java")
+
+        try {
+            waitingListFolderRequest = REQUEST_STATE.WAITING
+            runner!!.putMsgToSendQueue(FSEventMessage(FMEVENT_TYPE.LISTFOLDER_REQUEST))
+        } catch (e: Exception) {
+            waitingListFolderRequest = REQUEST_STATE.NOT_WAITING
+            return emptyList()
+        }
+
+        while (waitingListFolderRequest == REQUEST_STATE.WAITING) {
+            Thread.sleep(200L)
+        }
+        waitingListFolderRequest = REQUEST_STATE.NOT_WAITING
+
+        val cloudFiles = _cloudFileLists
+
+        val lists = HashSet(localFiles + cloudFiles).toList().sorted()
+        val localSet = HashSet(localFiles)
+        val cloudSet = HashSet(cloudFiles)
         val data =
-            mutableListOf<Map<String, String>>(
-                mapOf("name" to "file1.txt", "status" to "local only", "type" to "file"),
-                mapOf("name" to "file2.txt", "status" to "cloud only", "type" to "file"),
-                mapOf("name" to "file3.docx", "status" to "both", "type" to "file"),
-                mapOf("name" to "file4.cpp", "status" to "local only", "type" to "file"),
-            )
+            lists.map {
+                val inLocal = localSet.contains(it)
+                val inCloud = cloudSet.contains(it)
+                val status =
+                    if (inLocal) if (inCloud) "Both" else "Local Only"
+                    else if (inCloud) "Cloud Only" else "ERR"
+                mapOf("name" to it, "status" to status, "type" to "file")
+            }
         return data
     }
 

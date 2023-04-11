@@ -9,6 +9,7 @@ import java.net.Socket
 import java.util.Vector
 import message.FMEVENT_TYPE
 import message.FSEventMessage
+import message.FSVarLenStringListField
 
 class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<FSEventMessage> {
 
@@ -145,6 +146,15 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
                                     FSEventMessage(FMEVENT_TYPE.REGISTER_REJECTED)
                                 )
                             }
+                        }
+                        FMEVENT_TYPE.LISTFOLDER_REQUEST -> {
+                            // TODO("Send real data")
+                            val names = listOf<String>("aaa.txt", "bbb.txt", "fff.cpp")
+                            connWorker.putMsgToSendQueue(
+                                FSEventMessage(FMEVENT_TYPE.LISTFOLDER_RESPONSE).apply {
+                                    this.fileListField = FSVarLenStringListField(names)
+                                }
+                            )
                         }
                         else -> {
                             // TODO("Do nothing.")
