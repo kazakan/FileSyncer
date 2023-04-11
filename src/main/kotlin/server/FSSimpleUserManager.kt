@@ -69,5 +69,6 @@ class FSSimpleUserManager(var repositoryRoot: File) : FSUserManager {
         for (itUser in users) {
             writer.println("${itUser.id}\t${itUser.password}")
         }
+        writer.close()
     }
 }
