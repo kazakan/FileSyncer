@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="./clientmain.js"></script>
+    <script>
+        window.onload = function(){
+            getFileList("/")
+        }
+    </script>
+    <style>
+    html, body{
+        height:100%;
+    }
+
+        .upper-container{
+            display:flex;
+            height : 70%;
+            margin : 30px;
+        }
+
+        #file-list{
+            border-style : solid;
+            border-width : 2px;
+            padding : 5px;
+            width : 60%;
+            height : 100%;
+            overflow : scroll;
+        }
+        .row {
+            border-style : solid;
+            border-width : 2px;
+            display : inline-block;
+            width : 95%;
+            padding : 10px;
+        }
+        #right-panel{
+            border-style : solid;
+            width : 30%;
+            height: 100%;
+            padding : 5px;
+            overflow:scroll;
+        }
+
+
+    </style>
+</head>
+<body>
+<h1>File Syncer Client Web interface</h1>
+<div class="upper-container">
+    <div id="file-list">
+        <div class="row"> file name
+            <button style="float:right;">download</button>
+            <button style="float:right;">upload</button>
+            <span style="float:right; margin-right:5px;">Uploaded</span></div>
+    </div>
+    <div id="right-panel">
+
+    </div>
+</div>
+<div>
+
+    <button>Disconnect</button>
+    <button onclick="getFileList('/')">Refresh</button>
+</div>
+
+
+</body>
+</html>
