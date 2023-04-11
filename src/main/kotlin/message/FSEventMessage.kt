@@ -36,6 +36,7 @@ class FSEventMessage(
     var userIdField = FSVariableLenStringField(userIdStr)
     var userPasswordField = FSVariableLenStringField(userPasswordStr)
     var extraStrField = FSVariableLenStringField(extraStr)
+    var fileListField = FSVarLenStringListField()
 
     override fun marshallBody() {
         mBytebuffer!!.putInt(mEventcode)
@@ -64,6 +65,9 @@ class FSEventMessage(
             FMEVENT_TYPE.REGISTER_REQUEST -> {
                 userIdField.marshall(mBytebuffer!!)
                 userPasswordField.marshall(mBytebuffer!!)
+            }
+            FMEVENT_TYPE.LISTFOLDER_RESPONSE -> {
+                fileListField.marshall(mBytebuffer!!)
             }
             else -> {
                 // TODO("Raise error or ..")
@@ -99,6 +103,9 @@ class FSEventMessage(
                 userIdField.unmarshall(byteBuffer)
                 userPasswordField.unmarshall(byteBuffer)
             }
+            FMEVENT_TYPE.LISTFOLDER_RESPONSE -> {
+                fileListField.unmarshall(byteBuffer)
+            }
             else -> {
                 // TODO("Raise error or ..")
             }
@@ -133,6 +140,9 @@ class FSEventMessage(
             FMEVENT_TYPE.REGISTER_REQUEST -> {
                 ret += userIdField.getByteNums()
                 ret += userPasswordField.getByteNums()
+            }
+            FMEVENT_TYPE.LISTFOLDER_RESPONSE -> {
+                ret += fileListField.getByteNums()
             }
         }
 
