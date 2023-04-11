@@ -33,7 +33,7 @@ class FSSimpleUserManager(var repositoryRoot: File) : FSUserManager {
 
     override fun addUserSession(user: FSUser, session: FSEventConnWorker): FSEventConnWorker? {
         if (!userExists(user)) return null
-        if (sessions[user] != null) {
+        if (sessions[user] == null) {
             sessions[user] = session
             return session
         }
