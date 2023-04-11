@@ -124,6 +124,19 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
                             // make file upload connection
                         }
                         FMEVENT_TYPE.DOWNLOAD_REQUEST -> {}
+                        FMEVENT_TYPE.REGISTER_REQUEST -> {
+                            val user = FSUser(msg.userIdField.str, msg.userPasswordField.str)
+                            val result = userManager.registerUser(user)
+                            if (result) {
+                                connWorker.putMsgToSendQueue(
+                                    FSEventMessage(FMEVENT_TYPE.REGISTER_GRANTED)
+                                )
+                            } else {
+                                connWorker.putMsgToSendQueue(
+                                    FSEventMessage(FMEVENT_TYPE.REGISTER_REJECTED)
+                                )
+                            }
+                        }
                         else -> {
                             // TODO("Do nothing.")
                         }
