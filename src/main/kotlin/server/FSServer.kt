@@ -85,7 +85,9 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
                                     println(
                                         "server : login requested by ${msg.userIdField.str} granted."
                                     )
-                                    connWorker.putMsgToSendQueue(FSEventMessage())
+                                    connWorker.putMsgToSendQueue(
+                                        FSEventMessage(FMEVENT_TYPE.LOGIN_GRANTED)
+                                    )
                                     this@FSServer.broadcast(
                                         FSEventMessage(
                                             FMEVENT_TYPE.BROADCAST_CONNECTED,
