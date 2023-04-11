@@ -17,6 +17,7 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
 
     var userManager = FSSimpleUserManager(rootPath)
     var running = false
+    var repoDir = rootPath.resolve(File("repo"))
 
     var mainloopThread = Thread {
         var ss = ServerSocket(port)
@@ -50,6 +51,15 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
             if (!rootDir.isDirectory)
                 throw Error("Repo path($rootDir) is already occupied by other file")
         }
+
+        // create repository file
+        if (!repoDir.exists()) {
+            if (!repoDir.mkdir()) throw Error("Failed to mkdir() $repoDir.")
+        } else {
+            if (!repoDir.isDirectory)
+                throw Error("Repo path($repoDir) is already occupied by other file")
+        }
+
         userManager.initialize()
     }
 
@@ -148,13 +158,14 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
                             }
                         }
                         FMEVENT_TYPE.LISTFOLDER_REQUEST -> {
-                            // TODO("Send real data")
-                            val names = listOf<String>("aaa.txt", "bbb.txt", "fff.cpp")
-                            connWorker.putMsgToSendQueue(
-                                FSEventMessage(FMEVENT_TYPE.LISTFOLDER_RESPONSE).apply {
-                                    this.fileListField = FSVarLenStringListField(names)
-                                }
-                            )
+                            val names = repoDir.listFiles()?.filter { it.isFile }?.map { it.name }
+                            if (names != null) {
+                                connWorker.putMsgToSendQueue(
+                                    FSEventMessage(FMEVENT_TYPE.LISTFOLDER_RESPONSE).apply {
+                                        this.fileListField = FSVarLenStringListField(names)
+                                    }
+                                )
+                            }
                         }
                         else -> {
                             // TODO("Do nothing.")

@@ -2,6 +2,7 @@ package client
 
 import FSEventConnWorker
 import FSEventMessageHandler
+import java.io.File
 import java.net.Socket
 import message.FMEVENT_TYPE
 import message.FSEventMessage
@@ -35,7 +36,16 @@ class Client : FSEventMessageHandler, FSClientFrontInterface {
     var _passwd = ""
     var _cloudFileLists: List<String> = mutableListOf()
 
+    var _localRepoDir = File(System.getProperty("user.home") + "/fsclientRepo")
+
     fun start() {
+
+        if (!_localRepoDir.exists()) {
+            if (!_localRepoDir.mkdir()) throw Error("Failed to mkdir() $_localRepoDir.")
+        } else {
+            if (!_localRepoDir.isDirectory)
+                throw Error("Repo path($_localRepoDir) is already occupied by other file")
+        }
         webfront.start()
     }
 
@@ -174,8 +184,8 @@ class Client : FSEventMessageHandler, FSClientFrontInterface {
     }
 
     override fun showFolder(dir: String): List<Map<String, String>> {
-        // TODO("implement loading local files")
-        val localFiles = listOf("bbb.txt", "ccc.java")
+        val localFiles =
+            _localRepoDir.listFiles()?.filter { it.isFile }?.map { it.name } ?: emptyList()
 
         try {
             waitingListFolderRequest = REQUEST_STATE.WAITING
