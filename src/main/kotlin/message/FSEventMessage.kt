@@ -19,6 +19,9 @@ object FMEVENT_TYPE {
     const val DOWNLOAD_REQUEST: Int = 12 // request download
     const val LISTFOLDER_REQUEST: Int = 13 // request list of files
     const val LISTFOLDER_RESPONSE: Int = 14 // response for FILELIST_REQUEST
+    const val REGISTER_REQUEST: Int = 15 // request user register
+    const val REGISTER_GRANTED: Int = 16 // response for REGISTER_REQUEST
+    const val REGISTER_REJECTED: Int = 17
 }
 
 class FSEventMessage(
@@ -58,6 +61,10 @@ class FSEventMessage(
             FMEVENT_TYPE.DOWNLOAD_DONE -> {}
             FMEVENT_TYPE.UPLOAD_REQUEST -> {}
             FMEVENT_TYPE.DOWNLOAD_REQUEST -> {}
+            FMEVENT_TYPE.REGISTER_REQUEST -> {
+                userIdField.marshall(mBytebuffer!!)
+                userPasswordField.marshall(mBytebuffer!!)
+            }
             else -> {
                 // TODO("Raise error or ..")
             }
@@ -88,6 +95,10 @@ class FSEventMessage(
             FMEVENT_TYPE.DOWNLOAD_DONE -> {}
             FMEVENT_TYPE.UPLOAD_REQUEST -> {}
             FMEVENT_TYPE.DOWNLOAD_REQUEST -> {}
+            FMEVENT_TYPE.REGISTER_REQUEST -> {
+                userIdField.unmarshall(byteBuffer)
+                userPasswordField.unmarshall(byteBuffer)
+            }
             else -> {
                 // TODO("Raise error or ..")
             }
@@ -119,6 +130,10 @@ class FSEventMessage(
             FMEVENT_TYPE.DOWNLOAD_DONE -> {}
             FMEVENT_TYPE.UPLOAD_REQUEST -> {}
             FMEVENT_TYPE.DOWNLOAD_REQUEST -> {}
+            FMEVENT_TYPE.REGISTER_REQUEST -> {
+                ret += userIdField.getByteNums()
+                ret += userPasswordField.getByteNums()
+            }
         }
 
         return ret
