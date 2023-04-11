@@ -5,4 +5,5 @@ interface FSUserManager {
     fun removeUserSession(user: FSUser)
     fun registerUser(user: FSUser): Boolean
     fun unregisterUser(user: FSUser): Boolean
+    fun removeClosedConnection()
 }

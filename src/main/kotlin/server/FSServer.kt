@@ -34,6 +34,13 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
         }
     }
 
+    var removeDeadSessionThread = Thread {
+        while (true) {
+            userManager.removeClosedConnection()
+            Thread.sleep(500)
+        }
+    }
+
     fun initialize() {
         val rootDir = rootPath
         if (!rootDir.exists()) {
@@ -48,15 +55,17 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
     fun start() {
         println("FSServer started.")
         mainloopThread.start()
+        removeDeadSessionThread.start()
     }
 
     fun kill() {
         mainloopThread.interrupt()
+        removeDeadSessionThread.interrupt()
     }
 
     override fun broadcast(msg: FSEventMessage) {
         for (session in sessions) {
-            session.eventSendQueue.put(msg)
+            if (!session.isClosed()) session.eventSendQueue.put(msg)
         }
     }
 
@@ -108,7 +117,7 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
                         FMEVENT_TYPE.LOGOUT -> {
                             // logout and broadcast msg
                             val user = FSUser(msg.userIdField.str, msg.userPasswordField.str)
-                            userManager.unregisterUser(user)
+                            userManager.removeUserSession(user)
                             this@FSServer.broadcast(
                                 FSEventMessage(
                                     FMEVENT_TYPE.BROADCAST_CONNECTED,

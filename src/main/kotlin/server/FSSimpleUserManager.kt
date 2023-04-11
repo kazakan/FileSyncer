@@ -64,6 +64,18 @@ class FSSimpleUserManager(var repositoryRoot: File) : FSUserManager {
         return false
     }
 
+    override fun removeClosedConnection() {
+        var removeLists = mutableListOf<FSUser>()
+        for (entry in sessions) {
+            if (entry.value.isClosed()) {
+                removeLists.add(entry.key)
+            }
+        }
+        for (user in removeLists) {
+            removeUserSession(user)
+        }
+    }
+
     fun rewriteFile() {
         val writer = PrintWriter(FileWriter(userDataFile, false))
         for (itUser in users) {

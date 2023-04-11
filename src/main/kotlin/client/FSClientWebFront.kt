@@ -46,7 +46,8 @@ class FSClientWebFront(val client: FSClientFrontInterface) {
                 "checkConnection" to CheckConnectionApiServlet(),
                 "loginReq" to LoginRequestApi(),
                 "registerReq" to RegisterRequestApi(),
-                "showFolder" to ShowFolderApi()
+                "showFolder" to ShowFolderApi(),
+                "disconnect" to DisconnectApi()
             )
 
         for (entry in apiServlets) {
@@ -161,6 +162,17 @@ class FSClientWebFront(val client: FSClientFrontInterface) {
             response.contentType = "text/json;charset=UTF-8"
 
             response.writer.write(sss)
+        }
+    }
+
+    inner class DisconnectApi : HttpServlet() {
+        override fun doPost(request: HttpServletRequest, response: HttpServletResponse) {
+
+            client.disconnect()
+
+            // Set the content type and character encoding for the response
+            response.contentType = "text/json;charset=UTF-8"
+            response.writer.write("{\"result\" : \"ok\"}")
         }
     }
 }

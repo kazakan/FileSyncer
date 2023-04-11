@@ -18,10 +18,16 @@ class FSEventConnection(var socket: Socket) {
         dous.write(buffer!!.array())
     }
 
-    fun getMessage(): FSEventMessage {
+    fun getMessage(): FSEventMessage? {
         val msg = FSEventMessage()
+        var nBytes: Int
 
-        val nBytes = dios.readInt()
+        try {
+            nBytes = dios.readInt()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return null
+        }
 
         val byteBuffer = ByteBuffer.allocate(nBytes)
         byteBuffer.putInt(nBytes)
@@ -37,5 +43,9 @@ class FSEventConnection(var socket: Socket) {
         dous.flush()
         dous.close()
         socket.close()
+    }
+
+    fun isConencted(): Boolean {
+        return socket.isConnected && !socket.isClosed
     }
 }

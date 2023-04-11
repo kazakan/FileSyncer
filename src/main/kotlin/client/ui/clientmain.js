@@ -35,4 +35,14 @@ function getFileList(dir) {
   );
 }
 
-function disconnect() {}
+function disconnect() {
+  axios.post("/api/disconnect", {}).then(
+    (response) => {
+      alert("Disconnected successfully.");
+      window.location = "/fs/login";
+    },
+    (error) => {
+      alert("Something went wrong during disconnecting TT");
+    }
+  );
+}

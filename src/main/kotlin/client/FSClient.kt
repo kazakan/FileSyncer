@@ -30,18 +30,22 @@ class Client : FSEventMessageHandler, FSClientFrontInterface {
     var waitingLoginRequest = REQUEST_STATE.NOT_WAITING
     var waitingRegisterRequest = REQUEST_STATE.NOT_WAITING
 
+    var _id = ""
+    var _passwd = ""
+
     fun start() {
         webfront.start()
     }
 
     fun startConnection(address: String, port: Int) {
+        println("Creating connworker")
         val socket = Socket(address, port)
         runner = FSEventConnWorker(socket, this)
         runner!!.run()
     }
 
     override fun handleMessage(msg: FSEventMessage) {
-        print("client code = ${msg.mEventcode}, id: ${msg.userIdField.str}")
+        println("client code = ${msg.mEventcode}, id: ${msg.userIdField.str}")
         when (msg.mEventcode) {
             FMEVENT_TYPE.NONE -> {
                 // do nothing
@@ -115,6 +119,8 @@ class Client : FSEventMessageHandler, FSClientFrontInterface {
 
         if (waitingLoginRequest == REQUEST_STATE.GRANTED) {
             waitingLoginRequest = REQUEST_STATE.NOT_WAITING
+            _id = id
+            _passwd = password
             return true
         } else if (waitingLoginRequest == REQUEST_STATE.REJECTED) {
 
@@ -179,7 +185,7 @@ class Client : FSEventMessageHandler, FSClientFrontInterface {
     }
 
     override fun disconnect() {
-        runner?.putMsgToSendQueue(FSEventMessage(FMEVENT_TYPE.LOGOUT))
+        runner?.putMsgToSendQueue(FSEventMessage(FMEVENT_TYPE.LOGOUT, _id, _passwd))
         runner?.stop()
     }
 }

@@ -6,21 +6,37 @@ open class FSEventConnWorker(var socket: Socket, var eventHandler: FSEventMessag
     val connection = FSEventConnection(socket)
     val eventSendQueue = LinkedBlockingQueue<FSEventMessage>()
     val eventReceiveQueue = LinkedBlockingQueue<FSEventMessage>()
+    var closeReserved = false
+    private var _closed = false
     val sendMsgThread = Thread {
-        while (socket.isConnected) {
+        while (socket.isConnected && !socket.isClosed && !closeReserved) {
             val msg = eventSendQueue.take()
-            connection.sendMessage(msg)
-            println("Sent message ${msg.mEventcode}, ${msg.userIdField.str}")
+            if (!socket.isClosed) {
+                connection.sendMessage(msg)
+                println("Sent message ${msg.mEventcode}, ${msg.userIdField.str}")
+            }
         }
     }
     val receiveMsgThread = Thread {
-        while (socket.isConnected) {
+        while (socket.isConnected && !socket.isClosed && !closeReserved) {
             val msg = connection.getMessage()
-            eventReceiveQueue.put(msg)
+            if (msg != null) eventReceiveQueue.put(msg) else break
         }
+
+        closeReserved = true
+        sendMsgThread.interrupt()
+        handleMsgThread.interrupt()
+        sendMsgThread.join()
+        handleMsgThread.join()
+        if (socket.isConnected) connection.close()
+        _closed = true
+        println("Connworker stopped")
     }
     val handleMsgThread = Thread {
-        while (socket.isConnected || !eventReceiveQueue.isEmpty()) {
+        while (
+            (socket.isConnected && !socket.isClosed && !closeReserved) ||
+                !eventReceiveQueue.isEmpty()
+        ) {
             val msg = eventReceiveQueue.take()
             println("Handling message ${msg.mEventcode}, ${msg.userIdField.str}")
 
@@ -35,7 +51,17 @@ open class FSEventConnWorker(var socket: Socket, var eventHandler: FSEventMessag
     }
 
     fun stop() {
-        if (socket.isConnected) connection.close()
+        closeReserved = true
+        join()
+        if (socket.isConnected && !socket.isClosed) connection.close()
+        _closed = true
+        println("Connworker stopped")
+    }
+
+    fun join() {
+        sendMsgThread.join()
+        receiveMsgThread.join()
+        handleMsgThread.join()
     }
 
     fun putMsgToSendQueue(msg: FSEventMessage) {
@@ -44,5 +70,9 @@ open class FSEventConnWorker(var socket: Socket, var eventHandler: FSEventMessag
 
     fun putMsgToReceiveQueue(msg: FSEventMessage) {
         eventReceiveQueue.put(msg)
+    }
+
+    fun isClosed(): Boolean {
+        return _closed
     }
 }
