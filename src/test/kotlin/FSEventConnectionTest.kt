@@ -22,7 +22,7 @@ class FSEventConnectionTest {
         var serverConn = FSEventConnection(ss)
         var receivedMessage = serverConn.getMessage()
 
-        assertEquals(77, receivedMessage.mEventcode)
+        assertEquals(77, receivedMessage?.mEventcode)
 
         ss.close()
         server.close()
@@ -55,8 +55,8 @@ class FSEventConnectionTest {
         var msg1 = serverConn.getMessage()
         var msg2 = serverConn.getMessage()
 
-        assertEquals(CODE1, msg1.mEventcode)
-        assertEquals(CODE2, msg2.mEventcode)
+        assertEquals(CODE1, msg1?.mEventcode)
+        assertEquals(CODE2, msg2?.mEventcode)
 
         ss.close()
         server.close()
