@@ -3,7 +3,9 @@ package server
 import FSEventConnWorker
 import FSEventMessageHandler
 import FSUser
+import java.io.DataInputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.net.ServerSocket
 import java.net.Socket
 import java.util.Vector
@@ -43,6 +45,30 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
         }
     }
 
+    var fileDownloadLoopThread = Thread {
+        var fss = ServerSocket(7777)
+        while (running) {
+            var socket = fss.accept()
+            val fileDownloadWorkerThread = Thread {
+                println("File upload from ${socket.localAddress.hostAddress}")
+                var ios = socket.getInputStream()
+                var dios = DataInputStream(ios)
+                val fsize = dios.readLong()
+                val fnameLen = dios.readInt()
+                val fnameByteArr = ios.readNBytes(fnameLen)
+                val fname = String(fnameByteArr)
+
+                val fos = FileOutputStream(repoDir.resolve(File(fname)))
+
+                fos.use { ios.copyTo(it) }
+
+                socket.close()
+            }
+
+            fileDownloadWorkerThread.start()
+        }
+    }
+
     fun initialize() {
         val rootDir = rootPath
         if (!rootDir.exists()) {
@@ -67,11 +93,13 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
         println("FSServer started.")
         mainloopThread.start()
         removeDeadSessionThread.start()
+        fileDownloadLoopThread.start()
     }
 
     fun kill() {
         mainloopThread.interrupt()
         removeDeadSessionThread.interrupt()
+        fileDownloadLoopThread.interrupt()
     }
 
     override fun broadcast(msg: FSEventMessage) {
