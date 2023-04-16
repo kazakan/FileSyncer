@@ -16,6 +16,7 @@ object FMEVENT_TYPE {
     const val UPLOAD_DONE: Int = 9 // Done upload
     const val DOWNLOAD_DONE: Int = 10 // Down download
     const val UPLOAD_REQUEST: Int = 11 // request upload
+    const val UPLOAD_RESPONSE: Int = 18 // response for UPLOAD_REQUEST
     const val DOWNLOAD_REQUEST: Int = 12 // request download
     const val LISTFOLDER_REQUEST: Int = 13 // request list of files
     const val LISTFOLDER_RESPONSE: Int = 14 // response for FILELIST_REQUEST
@@ -60,7 +61,9 @@ class FSEventMessage(
             }
             FMEVENT_TYPE.UPLOAD_DONE -> {}
             FMEVENT_TYPE.DOWNLOAD_DONE -> {}
-            FMEVENT_TYPE.UPLOAD_REQUEST -> {}
+            FMEVENT_TYPE.UPLOAD_REQUEST -> {
+                extraStrField.marshall(mBytebuffer!!) // file name!
+            }
             FMEVENT_TYPE.DOWNLOAD_REQUEST -> {}
             FMEVENT_TYPE.REGISTER_REQUEST -> {
                 userIdField.marshall(mBytebuffer!!)
@@ -97,7 +100,9 @@ class FSEventMessage(
             }
             FMEVENT_TYPE.UPLOAD_DONE -> {}
             FMEVENT_TYPE.DOWNLOAD_DONE -> {}
-            FMEVENT_TYPE.UPLOAD_REQUEST -> {}
+            FMEVENT_TYPE.UPLOAD_REQUEST -> {
+                extraStrField.unmarshall(byteBuffer)
+            }
             FMEVENT_TYPE.DOWNLOAD_REQUEST -> {}
             FMEVENT_TYPE.REGISTER_REQUEST -> {
                 userIdField.unmarshall(byteBuffer)
@@ -135,7 +140,9 @@ class FSEventMessage(
             }
             FMEVENT_TYPE.UPLOAD_DONE -> {}
             FMEVENT_TYPE.DOWNLOAD_DONE -> {}
-            FMEVENT_TYPE.UPLOAD_REQUEST -> {}
+            FMEVENT_TYPE.UPLOAD_REQUEST -> {
+                ret += extraStrField.getByteNums()
+            }
             FMEVENT_TYPE.DOWNLOAD_REQUEST -> {}
             FMEVENT_TYPE.REGISTER_REQUEST -> {
                 ret += userIdField.getByteNums()
