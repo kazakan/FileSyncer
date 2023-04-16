@@ -2,6 +2,7 @@ package client
 
 import FSEventConnWorker
 import FSEventMessageHandler
+import java.io.DataOutputStream
 import java.io.File
 import java.net.Socket
 import message.FMEVENT_TYPE
@@ -218,7 +219,29 @@ class Client : FSEventMessageHandler, FSClientFrontInterface {
     }
 
     override fun uploadFile(path: String): Boolean {
-        // TODO("Implement")
+        val file = _localRepoDir.resolve(File(path))
+        var fileUploadThread = Thread {
+            val fsocket = Socket(address, 7777)
+            val fsize = file.length()
+            val fname = file.name
+            val fnameByteBuffer = fname.toByteArray()
+
+            val ous = fsocket.getOutputStream()
+            val dous = DataOutputStream(ous)
+            dous.writeLong(fsize)
+            dous.writeInt(fnameByteBuffer.size)
+            dous.write(fnameByteBuffer)
+
+            val fios = file.inputStream()
+
+            ous.use { fios.copyTo(ous) }
+
+            fsocket.close()
+        }
+
+        fileUploadThread.start()
+        fileUploadThread.join()
+
         return true
     }
 

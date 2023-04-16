@@ -47,7 +47,8 @@ class FSClientWebFront(val client: FSClientFrontInterface) {
                 "loginReq" to LoginRequestApi(),
                 "registerReq" to RegisterRequestApi(),
                 "showFolder" to ShowFolderApi(),
-                "disconnect" to DisconnectApi()
+                "disconnect" to DisconnectApi(),
+                "uploadFile" to UploadApi()
             )
 
         for (entry in apiServlets) {
@@ -173,6 +174,24 @@ class FSClientWebFront(val client: FSClientFrontInterface) {
             // Set the content type and character encoding for the response
             response.contentType = "text/json;charset=UTF-8"
             response.writer.write("{\"result\" : \"ok\"}")
+        }
+    }
+
+    inner class UploadApi : HttpServlet() {
+        override fun doPost(request: HttpServletRequest, response: HttpServletResponse) {
+
+            val fname = request.getParameter("fname")
+
+            val result = client.uploadFile(fname)
+
+            // Set the content type and character encoding for the response
+            response.contentType = "text/json;charset=UTF-8"
+
+            if (result) {
+                response.writer.write("{\"result\" : \"ok\"}")
+            } else {
+                response.writer.write("{\"result\" : \"failed\"}")
+            }
         }
     }
 }

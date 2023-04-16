@@ -1,4 +1,16 @@
-function uploadFile(path) {}
+function uploadFile(path) {
+  var params = new URLSearchParams();
+  params.append("fname", path);
+
+  axios.post("/api/uploadFile", params).then(
+    (response) => {
+      getFileList("");
+    },
+    (error) => {
+      alert(error);
+    }
+  );
+}
 
 function downloadFile(path) {}
 
@@ -20,7 +32,9 @@ function getFileList(dir) {
             '<div class="row">' +
             result[i]["name"] +
             '<button style="float:right;">download</button>' +
-            '<button style="float:right;">upload</button>' +
+            "<button onclick=\"uploadFile('" +
+            result[i]["name"] +
+            '\')" style="float:right;">upload</button>' +
             '<span style="float:right; margin-right:5px;">' +
             result[i]["status"] +
             "</span>" +
