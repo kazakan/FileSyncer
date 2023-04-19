@@ -22,6 +22,13 @@ configure<com.diffplug.gradle.spotless.SpotlessExtension> {
     javascript {
         target("src/**/*.js")
 
-        prettier()
+        prettier().config(mapOf("tabWidth" to 4))
+    }
+
+    format("html") {
+        // you have to set the target manually
+        target("src/**/*.html")
+
+        prettier().config(mapOf("parser" to "html", "tabWidth" to 4))
     }
 }
