@@ -4,8 +4,8 @@ import message.FSEventMessage
 
 open class FSEventConnWorker(var socket: Socket, var eventHandler: FSEventMessageHandler? = null) {
     val connection = FSEventConnection(socket)
-    val eventSendQueue = LinkedBlockingQueue<FSEventMessage>()
-    val eventReceiveQueue = LinkedBlockingQueue<FSEventMessage>()
+    private val eventSendQueue = LinkedBlockingQueue<FSEventMessage>()
+    private val eventReceiveQueue = LinkedBlockingQueue<FSEventMessage>()
     var closeReserved = false
     private var _closed = false
     val sendMsgThread = Thread {

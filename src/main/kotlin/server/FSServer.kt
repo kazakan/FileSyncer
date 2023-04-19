@@ -104,7 +104,7 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
 
     override fun broadcast(msg: FSEventMessage) {
         for (session in sessions) {
-            if (!session.isClosed()) session.eventSendQueue.put(msg)
+            if (!session.isClosed()) session.putMsgToSendQueue(msg)
         }
     }
 
