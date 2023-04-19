@@ -5,6 +5,7 @@ import FSEventMessageHandler
 import java.io.DataOutputStream
 import java.io.File
 import java.net.Socket
+import java.util.concurrent.LinkedBlockingQueue
 import message.FMEVENT_TYPE
 import message.FSEventMessage
 
@@ -38,6 +39,8 @@ class Client : FSEventMessageHandler, FSClientFrontInterface {
     var _cloudFileLists: List<String> = mutableListOf()
 
     var _localRepoDir = File(System.getProperty("user.home") + "/fsclientRepo")
+
+    val _reportMsgQueue = LinkedBlockingQueue<String>()
 
     fun start() {
 
@@ -74,8 +77,12 @@ class Client : FSEventMessageHandler, FSClientFrontInterface {
                 waitingLoginRequest = REQUEST_STATE.REJECTED
             }
             FMEVENT_TYPE.LOGOUT -> {}
-            FMEVENT_TYPE.BROADCAST_CONNECTED -> {}
-            FMEVENT_TYPE.BROADCAST_DISCONNECTED -> {}
+            FMEVENT_TYPE.BROADCAST_CONNECTED -> {
+                _reportMsgQueue.put("${msg.userIdField.str} connected.")
+            }
+            FMEVENT_TYPE.BROADCAST_DISCONNECTED -> {
+                _reportMsgQueue.put("${msg.userIdField.str} disconnected.")
+            }
             FMEVENT_TYPE.UPLOAD_DONE -> {}
             FMEVENT_TYPE.DOWNLOAD_DONE -> {}
             FMEVENT_TYPE.UPLOAD_REQUEST -> {}
@@ -248,5 +255,9 @@ class Client : FSEventMessageHandler, FSClientFrontInterface {
     override fun disconnect() {
         runner?.putMsgToSendQueue(FSEventMessage(FMEVENT_TYPE.LOGOUT, _id, _passwd))
         runner?.stop()
+    }
+
+    override fun takeReportMessage(): String {
+        return _reportMsgQueue.take()
     }
 }

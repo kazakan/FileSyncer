@@ -48,7 +48,8 @@ class FSClientWebFront(val client: FSClientFrontInterface) {
                 "registerReq" to RegisterRequestApi(),
                 "showFolder" to ShowFolderApi(),
                 "disconnect" to DisconnectApi(),
-                "uploadFile" to UploadApi()
+                "uploadFile" to UploadApi(),
+                "msgSse" to MsgSseApi()
             )
 
         for (entry in apiServlets) {
@@ -191,6 +192,25 @@ class FSClientWebFront(val client: FSClientFrontInterface) {
                 response.writer.write("{\"result\" : \"ok\"}")
             } else {
                 response.writer.write("{\"result\" : \"failed\"}")
+            }
+        }
+    }
+
+    inner class MsgSseApi : HttpServlet() {
+        override fun doGet(req: HttpServletRequest, resp: HttpServletResponse) {
+            resp.contentType = "text/event-stream"
+            resp.characterEncoding = "UTF-8"
+
+            val writer = resp.writer
+
+            // Send an initial SSE message to the client
+            writer.write("data: Message SSE Connected\n\n")
+            writer.flush()
+
+            while (true) {
+                val msg = client.takeReportMessage()
+                writer.write("data: $msg\n\n")
+                writer.flush()
             }
         }
     }

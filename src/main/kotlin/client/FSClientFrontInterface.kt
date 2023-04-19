@@ -7,4 +7,11 @@ interface FSClientFrontInterface {
     fun showFolder(dir: String): List<Map<String, String>>
     fun uploadFile(path: String): Boolean
     fun disconnect()
+
+    /**
+     * @return message to show
+     *
+     *   Take message from client. It should work like as if it takes elements from blocking queue.
+     */
+    fun takeReportMessage(): String
 }

@@ -60,3 +60,18 @@ function disconnect() {
     }
   );
 }
+
+function addReportMessage(msg) {
+  var messageWindow = document.getElementById("right-panel");
+  messageWindow.innerHTML += "<p>" + msg + "</p>";
+  messageWindow.scrollTo(0, messageWindow.scrollHeight);
+}
+
+function onLoad() {
+  getFileList("/");
+  const eventSource = new EventSource("/api/msgSse");
+
+  eventSource.addEventListener("message", (event) => {
+    addReportMessage(event.data);
+  });
+}

@@ -5,11 +5,6 @@
     <title>Title</title>
     <script type="module" src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="./clientmain.js"></script>
-    <script>
-        window.onload = function(){
-            getFileList("/")
-        }
-    </script>
     <style>
     html, body{
         height:100%;
@@ -47,7 +42,7 @@
 
     </style>
 </head>
-<body>
+<body onload="onLoad()">
 <h1>File Syncer Client Web interface</h1>
 <div class="upper-container">
     <div id="file-list">
