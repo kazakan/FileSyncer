@@ -28,17 +28,31 @@ function getFileList(dir) {
 
       if (result.length > 0) {
         for (var i = 0; i < result.length; ++i) {
-          var row =
-            '<div class="row">' +
-            result[i]["name"] +
-            '<button style="float:right;">download</button>' +
+          var isLocal =
+            result[i]["status"] == "Both" ||
+            result[i]["status"] == "Local Only";
+          var isCloud =
+            result[i]["status"] == "Both" ||
+            result[i]["status"] == "Cloud Only";
+
+          var row = '<div class="row">' + result[i]["name"];
+
+          // download button
+          row += '<button style="float:right;" disabled="">download</button>';
+
+          // upload button
+          row +=
             "<button onclick=\"uploadFile('" +
             result[i]["name"] +
-            '\')" style="float:right;">upload</button>' +
+            '\')" style="float:right;" ';
+          if (!isLocal) row += 'disabled=""';
+          row += ">upload</button>";
+          row +=
             '<span style="float:right; margin-right:5px;">' +
             result[i]["status"] +
-            "</span>" +
-            "</div> \n";
+            "</span>";
+
+          row += "</div> \n";
           element.innerHTML += row;
         }
       } else {
