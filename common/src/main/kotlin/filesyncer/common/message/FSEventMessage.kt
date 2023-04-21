@@ -54,7 +54,10 @@ class FSEventMessage(
             }
             FMEVENT_TYPE.LOGIN_GRANTED -> {}
             FMEVENT_TYPE.LOGIN_REJECTED -> {}
-            FMEVENT_TYPE.LOGOUT -> {}
+            FMEVENT_TYPE.LOGOUT -> {
+                userIdField.marshall(mBytebuffer!!)
+                userPasswordField.marshall(mBytebuffer!!)
+            }
             FMEVENT_TYPE.BROADCAST_CONNECTED,
             FMEVENT_TYPE.BROADCAST_DISCONNECTED -> {
                 userIdField.marshall(mBytebuffer!!)
@@ -93,7 +96,10 @@ class FSEventMessage(
             }
             FMEVENT_TYPE.LOGIN_GRANTED -> {}
             FMEVENT_TYPE.LOGIN_REJECTED -> {}
-            FMEVENT_TYPE.LOGOUT -> {}
+            FMEVENT_TYPE.LOGOUT -> {
+                userIdField.unmarshall(byteBuffer)
+                userPasswordField.unmarshall(byteBuffer)
+            }
             FMEVENT_TYPE.BROADCAST_CONNECTED,
             FMEVENT_TYPE.BROADCAST_DISCONNECTED -> {
                 userIdField.unmarshall(byteBuffer)
@@ -133,7 +139,10 @@ class FSEventMessage(
             }
             FMEVENT_TYPE.LOGIN_GRANTED -> {}
             FMEVENT_TYPE.LOGIN_REJECTED -> {}
-            FMEVENT_TYPE.LOGOUT -> {}
+            FMEVENT_TYPE.LOGOUT -> {
+                ret += userIdField.getByteNums()
+                ret += userPasswordField.getByteNums()
+            }
             FMEVENT_TYPE.BROADCAST_CONNECTED,
             FMEVENT_TYPE.BROADCAST_DISCONNECTED -> {
                 ret += userIdField.getByteNums()

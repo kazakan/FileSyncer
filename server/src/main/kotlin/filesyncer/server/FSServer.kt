@@ -173,7 +173,7 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
                             userManager.removeUserSession(user)
                             this@FSServer.broadcast(
                                 FSEventMessage(
-                                    FMEVENT_TYPE.BROADCAST_CONNECTED,
+                                    FMEVENT_TYPE.BROADCAST_DISCONNECTED,
                                     userIdStr = msg.userIdField.str
                                 )
                             )

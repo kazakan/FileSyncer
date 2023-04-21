@@ -180,6 +180,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FSClientFrontInter
         if (waitingRegisterRequest == REQUEST_STATE.GRANTED) {
 
             waitingRegisterRequest = REQUEST_STATE.NOT_WAITING
+            _id = id
             return true
         } else if (waitingRegisterRequest == REQUEST_STATE.REJECTED) {
 
