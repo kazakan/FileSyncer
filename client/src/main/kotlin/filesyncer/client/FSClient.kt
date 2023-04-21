@@ -25,7 +25,7 @@ enum class REQUEST_STATE {
 class Client(var localRepoDir: File) : FSEventMessageHandler, FSClientFrontInterface {
     var state = FSCLIENT_STATE.DISCONNECTED
     var runner: FSEventConnWorker? = null
-    var webfront = FSClientWebFront(this)
+    var front: FSClientFront? = null
 
     var address = ""
     var port = 500
@@ -48,7 +48,8 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FSClientFrontInter
             if (!this.localRepoDir.isDirectory)
                 throw Error("Repo path(${this.localRepoDir}) is already occupied by other file")
         }
-        webfront.start()
+
+        front?.start()
     }
 
     fun startConnection(address: String, port: Int) {

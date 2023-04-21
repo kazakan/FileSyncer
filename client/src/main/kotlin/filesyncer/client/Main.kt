@@ -33,6 +33,9 @@ fun main(argv: Array<String>) {
     println("Start Client Program with under configuration")
     println("Local folder path : $folder")
     println("Web port used by client : $webport")
-    var client = Client(File(folder))
+
+    val client = Client(File(folder))
+    val front = FSClientWebFront(client, webport)
+    client.front = front
     client.start()
 }

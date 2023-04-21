@@ -15,11 +15,10 @@ import org.eclipse.jetty.servlet.DefaultServlet
 import org.eclipse.jetty.servlet.ServletContextHandler
 import org.eclipse.jetty.servlet.ServletHolder
 
-class FSClientWebFront(val client: FSClientFrontInterface) {
+class FSClientWebFront(val client: FSClientFrontInterface, val port: Int = 8080) : FSClientFront() {
 
     val resourceBase = this::class.java.getResource("/webapps")?.toString()
     val resourceLoader = this::class.java
-    var port = 0
 
     fun readHtmlFromFile(filename: String): String? {
         return Files.readString(Paths.get(filename), StandardCharsets.UTF_8)
@@ -33,8 +32,8 @@ class FSClientWebFront(val client: FSClientFrontInterface) {
         return String(inputstream.readAllBytes(), StandardCharsets.UTF_8)
     }
 
-    fun start() {
-        val server = Server(8080)
+    override fun start() {
+        val server = Server(port)
         val handler = ServletContextHandler()
         handler.resourceBase = resourceBase
         handler.contextPath = "/fs"
