@@ -61,9 +61,9 @@ interface FSClientFrontInterface {
     fun disconnect()
 
     /**
-     * Take message from client and pass it to UI. Be sure to implement as blocking call.
+     * Take message from client and pass it to UI. Return null if there's no message.
      *
      * @return message to show
      */
-    fun takeReportMessage(): String
+    fun takeReportMessage(): String?
 }

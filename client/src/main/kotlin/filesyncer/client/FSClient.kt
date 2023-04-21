@@ -257,7 +257,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FSClientFrontInter
         runner?.stop()
     }
 
-    override fun takeReportMessage(): String {
-        return _reportMsgQueue.take()
+    override fun takeReportMessage(): String? {
+        return _reportMsgQueue.poll()
     }
 }

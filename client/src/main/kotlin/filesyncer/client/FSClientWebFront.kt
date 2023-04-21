@@ -212,19 +212,14 @@ class FSClientWebFront(val client: FSClientFrontInterface, val port: Int = 8080)
 
     inner class MsgSseApi : HttpServlet() {
         override fun doGet(req: HttpServletRequest, resp: HttpServletResponse) {
-            resp.contentType = "text/event-stream"
+            resp.contentType = "text/plain"
             resp.characterEncoding = "UTF-8"
 
             val writer = resp.writer
 
-            // Send an initial SSE message to the client
-            writer.write("data: Message SSE Connected\n\n")
-            writer.flush()
-
             while (true) {
-                val msg = client.takeReportMessage()
-                writer.write("data: $msg\n\n")
-                writer.flush()
+                val msg = client.takeReportMessage() ?: break
+                writer.write("$msg\n")
             }
         }
     }

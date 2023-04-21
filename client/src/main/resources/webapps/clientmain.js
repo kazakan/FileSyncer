@@ -82,11 +82,17 @@ function addReportMessage(msg) {
     messageWindow.scrollTo(0, messageWindow.scrollHeight);
 }
 
+function getReportMessage() {
+    axios.get("/api/msgSse", {}).then((response) => {
+        messages = response.data;
+        msgList = messages.split("\n");
+        for (var i = 0; i < msgList.length; ++i) {
+            addReportMessage(msgList[i]);
+        }
+    });
+}
+
 function onLoad() {
     getFileList("/");
-    const eventSource = new EventSource("/api/msgSse");
-
-    eventSource.addEventListener("message", (event) => {
-        addReportMessage(event.data);
-    });
+    setInterval(getReportMessage, 1000);
 }
