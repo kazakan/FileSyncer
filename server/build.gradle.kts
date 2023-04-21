@@ -4,12 +4,16 @@
 plugins {
     `kotlin-dsl`
     application
+    id("com.github.johnrengelman.shadow").version("8.1.1")
+    kotlin("jvm")
 }
 
 repositories { mavenCentral() }
 
 dependencies {
     api(project(":common"))
+
+    implementation(kotlin("stdlib"))
 
     testImplementation(kotlin("test"))
 }
@@ -18,3 +22,7 @@ application {
     // Define the main class for the application.
     mainClass.set("filesyncer.server.MainKt")
 }
+
+tasks.shadowJar { manifest { attributes["Main-Class"] = "filesyncer.server.MainKt" } }
+
+tasks { build { dependsOn(shadowJar) } }
