@@ -15,8 +15,8 @@ allprojects {
     repositories { mavenCentral() }
 
     tasks {
-        withType<Tar> { duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.INCLUDE }
-        withType<Zip> { duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.INCLUDE }
+        withType<Tar> { duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.EXCLUDE }
+        withType<Zip> { duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.EXCLUDE }
     }
 }
 
