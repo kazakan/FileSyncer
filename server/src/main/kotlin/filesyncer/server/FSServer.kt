@@ -13,7 +13,8 @@ import message.FMEVENT_TYPE
 import message.FSEventMessage
 import message.FSVarLenStringListField
 
-class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<FSEventMessage> {
+class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = false) :
+    FSMessageBroadcaster<FSEventMessage> {
 
     var sessions = Vector<FSEventConnWorker>()
 
@@ -26,12 +27,15 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
         running = true
         var i = 0
         while (running) {
-            println("server main loop thread loop : $i")
+
             val socket = ss.accept()
             val worker = createConnWorker(socket)
-            println(
-                "User tried make connection. IP : ${socket.inetAddress.hostAddress}, PORT : ${socket.port}"
-            )
+            if (verbose) {
+                println(
+                    "User tried make connection. IP : ${socket.inetAddress.hostAddress}, PORT : ${socket.port}"
+                )
+            }
+
             worker.run()
             sessions.add(worker)
             ++i
@@ -50,7 +54,9 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
         while (running) {
             var socket = fss.accept()
             val fileDownloadWorkerThread = Thread {
-                println("File upload from ${socket.localAddress.hostAddress}")
+                if (verbose) {
+                    println("Start download file from ${socket.remoteSocketAddress.toString()}")
+                }
                 var ios = socket.getInputStream()
                 var dios = DataInputStream(ios)
                 val fsize = dios.readLong()
@@ -63,6 +69,9 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
                 fos.use { ios.copyTo(it) }
 
                 socket.close()
+                if (verbose) {
+                    println("Done download file")
+                }
             }
 
             fileDownloadWorkerThread.start()
@@ -90,7 +99,10 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
     }
 
     fun start() {
-        println("FSServer started.")
+        if (verbose) {
+            println("FSServer started.")
+        }
+        running = true
         mainloopThread.start()
         removeDeadSessionThread.start()
         fileDownloadLoopThread.start()
@@ -117,22 +129,24 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
                         FMEVENT_TYPE.ANSWER_ALIVE -> {}
                         FMEVENT_TYPE.LOGIN_REQUEST -> {
                             // check user and make response
-                            println("server : get lgin requested by ${msg.userIdField.str}")
+                            if (verbose) println("Got login requested by ${msg.userIdField.str}")
                             val user = FSUser(msg.userIdField.str, msg.userPasswordField.str)
                             if (userManager.userExists(user)) {
                                 if (userManager.addUserSession(user, connWorker) == null) {
                                     // already logged in other device
-                                    println(
-                                        "server : login requested by ${msg.userIdField.str} rejected."
-                                    )
+                                    if (verbose)
+                                        println(
+                                            "Login requested by ${msg.userIdField.str} rejected."
+                                        )
                                     connWorker.putMsgToSendQueue(
                                         FSEventMessage(FMEVENT_TYPE.LOGIN_REJECTED)
                                     )
                                 } else {
                                     // granted
-                                    println(
-                                        "server : login requested by ${msg.userIdField.str} granted."
-                                    )
+                                    if (verbose)
+                                        println(
+                                            "Login requested by ${msg.userIdField.str} granted."
+                                        )
                                     connWorker.putMsgToSendQueue(
                                         FSEventMessage(FMEVENT_TYPE.LOGIN_GRANTED)
                                     )
@@ -145,9 +159,8 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
                                 }
                             } else {
                                 // rejected
-                                println(
-                                    "server : login requested by ${msg.userIdField.str} rejected."
-                                )
+                                if (verbose)
+                                    println("Login requested by ${msg.userIdField.str} rejected.")
                                 connWorker.putMsgToSendQueue(
                                     FSEventMessage(FMEVENT_TYPE.LOGIN_REJECTED)
                                 )
@@ -156,6 +169,7 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
                         FMEVENT_TYPE.LOGOUT -> {
                             // logout and broadcast msg
                             val user = FSUser(msg.userIdField.str, msg.userPasswordField.str)
+                            if (verbose) println("User ${msg.userIdField.str} logged out.")
                             userManager.removeUserSession(user)
                             this@FSServer.broadcast(
                                 FSEventMessage(
@@ -179,14 +193,18 @@ class FSServer(var rootPath: File, var port: Int = 5050) : FSMessageBroadcaster<
                                 connWorker.putMsgToSendQueue(
                                     FSEventMessage(FMEVENT_TYPE.REGISTER_GRANTED)
                                 )
+                                if (verbose) println("User ${msg.userIdField.str} registered.")
                             } else {
                                 connWorker.putMsgToSendQueue(
                                     FSEventMessage(FMEVENT_TYPE.REGISTER_REJECTED)
                                 )
+                                if (verbose)
+                                    println("Register of User ${msg.userIdField.str} rejected.")
                             }
                         }
                         FMEVENT_TYPE.LISTFOLDER_REQUEST -> {
                             val names = repoDir.listFiles()?.filter { it.isFile }?.map { it.name }
+                            if (verbose) println("List folder request handled.")
                             if (names != null) {
                                 connWorker.putMsgToSendQueue(
                                     FSEventMessage(FMEVENT_TYPE.LISTFOLDER_RESPONSE).apply {

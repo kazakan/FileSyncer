@@ -4,26 +4,34 @@ import java.net.Socket
 import java.util.concurrent.LinkedBlockingQueue
 import message.FSEventMessage
 
-open class FSEventConnWorker(var socket: Socket, var eventHandler: FSEventMessageHandler? = null) {
+open class FSEventConnWorker(
+    var socket: Socket,
+    var eventHandler: FSEventMessageHandler? = null,
+    val verbose: Boolean = false
+) {
     val connection = FSEventConnection(socket)
     private val eventSendQueue = LinkedBlockingQueue<FSEventMessage>()
     private val eventReceiveQueue = LinkedBlockingQueue<FSEventMessage>()
     var closeReserved = false
     private var _closed = false
     val sendMsgThread = Thread {
-        while (socket.isConnected && !socket.isClosed && !closeReserved) {
-            val msg = eventSendQueue.take()
-            if (!socket.isClosed) {
-                connection.sendMessage(msg)
-                println("Sent message ${msg.mEventcode}, ${msg.userIdField.str}")
+        try {
+            while (socket.isConnected && !socket.isClosed && !closeReserved) {
+                val msg = eventSendQueue.take()
+                if (!socket.isClosed) {
+                    connection.sendMessage(msg)
+                    if (verbose) println("Sent message ${msg.mEventcode}")
+                }
             }
-        }
+        } catch (_: Exception) {}
     }
     val receiveMsgThread = Thread {
-        while (socket.isConnected && !socket.isClosed && !closeReserved) {
-            val msg = connection.getMessage()
-            if (msg != null) eventReceiveQueue.put(msg) else break
-        }
+        try {
+            while (socket.isConnected && !socket.isClosed && !closeReserved) {
+                val msg = connection.getMessage()
+                if (msg != null) eventReceiveQueue.put(msg) else break
+            }
+        } catch (_: Exception) {}
 
         closeReserved = true
         sendMsgThread.interrupt()
@@ -32,18 +40,19 @@ open class FSEventConnWorker(var socket: Socket, var eventHandler: FSEventMessag
         handleMsgThread.join()
         if (socket.isConnected) connection.close()
         _closed = true
-        println("Connworker stopped")
     }
     val handleMsgThread = Thread {
-        while (
-            (socket.isConnected && !socket.isClosed && !closeReserved) ||
-                !eventReceiveQueue.isEmpty()
-        ) {
-            val msg = eventReceiveQueue.take()
-            println("Handling message ${msg.mEventcode}, ${msg.userIdField.str}")
+        try {
+            while (
+                (socket.isConnected && !socket.isClosed && !closeReserved) ||
+                    !eventReceiveQueue.isEmpty()
+            ) {
+                val msg = eventReceiveQueue.take()
+                if (verbose) println("Handling message ${msg.mEventcode}")
 
-            if (eventHandler != null) eventHandler!!.handleMessage(msg)
-        }
+                if (eventHandler != null) eventHandler!!.handleMessage(msg)
+            }
+        } catch (_: Exception) {}
     }
 
     fun run() {
@@ -57,7 +66,6 @@ open class FSEventConnWorker(var socket: Socket, var eventHandler: FSEventMessag
         join()
         if (socket.isConnected && !socket.isClosed) connection.close()
         _closed = true
-        println("Connworker stopped")
     }
 
     fun join() {

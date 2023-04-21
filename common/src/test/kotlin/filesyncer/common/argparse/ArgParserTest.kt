@@ -13,7 +13,7 @@ class ArgParserTest {
         parser.addArg("aopt", ArgType.STRING, true, "hahaha")
         parser.addArg("bopt", ArgType.INT, true, 50)
 
-        val args = parser.parse(listOf("aaa", "-a", "kelvin", "-b", "5050", "aaa"))
+        val args = parser.parse(arrayOf("aaa", "-a", "kelvin", "-b", "5050", "aaa"))
         Assertions.assertEquals("aaa", args["apos"])
         Assertions.assertEquals("aaa", args["bpos"])
         Assertions.assertEquals("kelvin", args["aopt"])
