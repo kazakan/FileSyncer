@@ -19,6 +19,7 @@ class FSClientWebFront(val client: FSClientFrontInterface, val port: Int = 8080)
 
     val resourceBase = this::class.java.getResource("/webapps")?.toString()
     val resourceLoader = this::class.java
+    var cnt = 0
 
     fun readHtmlFromFile(filename: String): String? {
         return Files.readString(Paths.get(filename), StandardCharsets.UTF_8)

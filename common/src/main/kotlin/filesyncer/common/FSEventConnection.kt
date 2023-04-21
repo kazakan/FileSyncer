@@ -27,7 +27,6 @@ class FSEventConnection(var socket: Socket) {
         try {
             nBytes = dios.readInt()
         } catch (e: Exception) {
-            e.printStackTrace()
             return null
         }
 
@@ -47,7 +46,7 @@ class FSEventConnection(var socket: Socket) {
         socket.close()
     }
 
-    fun isConencted(): Boolean {
+    fun isConnected(): Boolean {
         return socket.isConnected && !socket.isClosed
     }
 }

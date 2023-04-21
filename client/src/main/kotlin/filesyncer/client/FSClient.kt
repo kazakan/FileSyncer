@@ -106,7 +106,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FSClientFrontInter
     override fun checkConnection(address: String, port: Int): Boolean {
         if (
             (runner != null) &&
-                runner!!.connection.isConencted() &&
+                runner!!.connection.isConnected() &&
                 (this.address == address) &&
                 (this.port == port)
         ) {
