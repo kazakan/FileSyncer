@@ -69,7 +69,7 @@ open class FSEventConnWorker(
 
     fun stop() {
         closeReserved = true
-        join()
+        // join()
         if (connection.isConnected()) connection.close()
         _closed = true
     }

@@ -85,6 +85,7 @@ class FSClientWebFront(val client: FSClientFrontInterface, val port: Int = 8080)
 
             // Write the HTML to the response output stream
             response.writer.write(html)
+            response.writer.flush()
         }
     }
 
@@ -99,6 +100,7 @@ class FSClientWebFront(val client: FSClientFrontInterface, val port: Int = 8080)
 
             // Write the HTML to the response output stream
             response.writer.write(html)
+            response.writer.flush()
         }
     }
 
@@ -108,6 +110,7 @@ class FSClientWebFront(val client: FSClientFrontInterface, val port: Int = 8080)
             response.contentType = "text/json;charset=UTF-8"
 
             response.writer.write("{'connection' : 'ok'}")
+            response.writer.flush()
         }
     }
 
@@ -130,6 +133,7 @@ class FSClientWebFront(val client: FSClientFrontInterface, val port: Int = 8080)
             } else {
                 response.writer.write("{\"result\" : \"failed\"}")
             }
+            response.writer.flush()
         }
     }
 
@@ -151,6 +155,7 @@ class FSClientWebFront(val client: FSClientFrontInterface, val port: Int = 8080)
             } else {
                 response.writer.write("{\"result\" : \"failed\"}")
             }
+            response.writer.flush()
         }
     }
 
@@ -178,6 +183,7 @@ class FSClientWebFront(val client: FSClientFrontInterface, val port: Int = 8080)
             response.contentType = "text/json;charset=UTF-8"
 
             response.writer.write(sss)
+            response.writer.flush()
         }
     }
 
@@ -189,6 +195,7 @@ class FSClientWebFront(val client: FSClientFrontInterface, val port: Int = 8080)
             // Set the content type and character encoding for the response
             response.contentType = "text/json;charset=UTF-8"
             response.writer.write("{\"result\" : \"ok\"}")
+            response.writer.flush()
         }
     }
 
@@ -207,6 +214,7 @@ class FSClientWebFront(val client: FSClientFrontInterface, val port: Int = 8080)
             } else {
                 response.writer.write("{\"result\" : \"failed\"}")
             }
+            response.writer.flush()
         }
     }
 
@@ -221,6 +229,7 @@ class FSClientWebFront(val client: FSClientFrontInterface, val port: Int = 8080)
                 val msg = client.takeReportMessage() ?: break
                 writer.write("$msg\n")
             }
+            resp.writer.flush()
         }
     }
 }

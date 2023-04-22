@@ -7,7 +7,11 @@ import java.io.File
 import java.io.FileWriter
 import java.io.PrintWriter
 
-class FSSimpleUserManager(var repositoryRoot: File, val verbose: Boolean = false) : FSUserManager {
+class FSSimpleUserManager(
+    var repositoryRoot: File,
+    val verbose: Boolean = false,
+    val listener: FSUserManager.FSUserManagerListener? = null
+) : FSUserManager {
 
     var sessions = HashMap<FSUser, FSEventConnWorker>()
     var users = HashSet<FSUser>()
@@ -36,6 +40,7 @@ class FSSimpleUserManager(var repositoryRoot: File, val verbose: Boolean = false
         if (sessions[user] == null) {
             if (verbose) println("Add User ${user.id}'s Session")
             sessions[user] = session
+            listener?.onUserSessionAdded(user)
             return session
         }
 
@@ -46,6 +51,7 @@ class FSSimpleUserManager(var repositoryRoot: File, val verbose: Boolean = false
         if (sessions[user] != null) {
             if (verbose) println("Remove User ${user.id}'s Session")
             sessions.remove(user)
+            listener?.onUserSessionRemoved(user)
         }
     }
 

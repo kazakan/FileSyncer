@@ -27,6 +27,7 @@ class FSEventConnection(var socket: Socket) {
         try {
             nBytes = dios.readInt()
         } catch (e: Exception) {
+            close()
             return null
         }
 

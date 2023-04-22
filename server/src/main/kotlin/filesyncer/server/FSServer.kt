@@ -3,22 +3,20 @@ package filesyncer.server
 import filesyncer.common.FSEventConnWorker
 import filesyncer.common.FSEventMessageHandler
 import filesyncer.common.FSUser
+import filesyncer.common.FSUserManager
 import java.io.DataInputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.net.ServerSocket
 import java.net.Socket
-import java.util.Vector
 import message.FMEVENT_TYPE
 import message.FSEventMessage
 import message.FSVarLenStringListField
 
 class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = false) :
-    FSMessageBroadcaster<FSEventMessage> {
+    FSMessageBroadcaster<FSEventMessage>, FSUserManager.FSUserManagerListener {
 
-    var sessions = Vector<FSEventConnWorker>()
-
-    var userManager = FSSimpleUserManager(rootPath)
+    var userManager = FSSimpleUserManager(rootPath, verbose, this)
     var running = false
     var repoDir = rootPath.resolve(File("repo"))
 
@@ -37,7 +35,6 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
             }
 
             worker.run()
-            sessions.add(worker)
             ++i
         }
     }
@@ -115,8 +112,9 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
     }
 
     override fun broadcast(msg: FSEventMessage) {
-        for (session in sessions) {
-            if (!session.isClosed()) session.putMsgToSendQueue(msg)
+        println("Broadcast msg code=${msg.mEventcode}, ID=${msg.userIdField.str}")
+        for (entry in userManager.sessions) {
+            if (!entry.value.isClosed()) entry.value.putMsgToSendQueue(msg)
         }
     }
 
@@ -125,6 +123,8 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
         val handler =
             object : FSEventMessageHandler {
                 override fun handleMessage(msg: FSEventMessage) {
+                    if (verbose)
+                        println("Got Msg with Code=${msg.mEventcode}, ID=${msg.userIdField.str}")
                     when (msg.mEventcode) {
                         FMEVENT_TYPE.ANSWER_ALIVE -> {}
                         FMEVENT_TYPE.LOGIN_REQUEST -> {
@@ -150,12 +150,6 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
                                     connWorker.putMsgToSendQueue(
                                         FSEventMessage(FMEVENT_TYPE.LOGIN_GRANTED)
                                     )
-                                    this@FSServer.broadcast(
-                                        FSEventMessage(
-                                            FMEVENT_TYPE.BROADCAST_CONNECTED,
-                                            userIdStr = user.id
-                                        )
-                                    )
                                 }
                             } else {
                                 // rejected
@@ -170,13 +164,7 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
                             // logout and broadcast msg
                             val user = FSUser(msg.userIdField.str, msg.userPasswordField.str)
                             if (verbose) println("User ${msg.userIdField.str} logged out.")
-                            userManager.removeUserSession(user)
-                            this@FSServer.broadcast(
-                                FSEventMessage(
-                                    FMEVENT_TYPE.BROADCAST_DISCONNECTED,
-                                    userIdStr = msg.userIdField.str
-                                )
-                            )
+                            // userManager.removeUserSession(user)
                         }
                         FMEVENT_TYPE.UPLOAD_DONE -> {
                             // check result and send download done
@@ -223,5 +211,17 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
         connWorker.eventHandler = handler
 
         return connWorker
+    }
+
+    override fun onUserSessionRemoved(user: FSUser) {
+        this@FSServer.broadcast(
+            FSEventMessage(FMEVENT_TYPE.BROADCAST_DISCONNECTED, userIdStr = user.id)
+        )
+    }
+
+    override fun onUserSessionAdded(user: FSUser) {
+        this@FSServer.broadcast(
+            FSEventMessage(FMEVENT_TYPE.BROADCAST_CONNECTED, userIdStr = user.id)
+        )
     }
 }
