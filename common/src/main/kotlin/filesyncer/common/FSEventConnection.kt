@@ -1,42 +1,32 @@
 package filesyncer.common
 
+import java.io.BufferedInputStream
+import java.io.BufferedOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
-import java.io.InputStream
-import java.io.OutputStream
+import java.io.IOException
 import java.net.Socket
 import java.nio.ByteBuffer
+import kotlin.jvm.Throws
 import message.FSEventMessage
 
 class FSEventConnection(var socket: Socket, val verbose: Boolean = false) {
 
-    var ous: OutputStream = socket.getOutputStream()
-    var dous: DataOutputStream = DataOutputStream(ous)
-    var ios: InputStream = socket.getInputStream()
-    var dios = DataInputStream(ios)
-    var _dead = false
+    private var dous = DataOutputStream(BufferedOutputStream(socket.getOutputStream()))
+    private var dios = DataInputStream(BufferedInputStream(socket.getInputStream()))
+    private var _dead = false
 
     fun sendMessage(message: FSEventMessage) {
         val buffer = message.marshall()
         dous.write(buffer!!.array())
+        dous.flush()
     }
 
-    fun getMessage(): FSEventMessage? {
+    @Throws(IOException::class)
+    fun getMessage(): FSEventMessage {
         val msg = FSEventMessage()
-        var nBytes: Int
 
-        try {
-            nBytes = dios.readInt()
-        } catch (e: Exception) {
-            if (verbose) {
-                e.printStackTrace()
-                println("Socket is dead.")
-            }
-            _dead = true
-            close()
-            return null
-        }
-
+        val nBytes: Int = dios.readInt()
         val byteBuffer = ByteBuffer.allocate(nBytes)
         byteBuffer.putInt(nBytes)
         while (byteBuffer.hasRemaining()) {
@@ -44,16 +34,17 @@ class FSEventConnection(var socket: Socket, val verbose: Boolean = false) {
         }
 
         msg.unmarshall(byteBuffer)
+
         return msg
     }
 
     fun close() {
+        if (_dead) return
+        _dead = true
         if (verbose) println("Closing FSEventConnection with ${socket.inetAddress}")
         dous.flush()
         dous.close()
         dios.close()
-        socket.close()
-        _dead = true
     }
 
     fun isConnected(): Boolean {

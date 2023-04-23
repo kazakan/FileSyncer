@@ -30,22 +30,29 @@ open class FSEventConnWorker(
         }
     }
     val receiveMsgThread = Thread {
-        while (connection.isConnected() && !closeReserved) {
-            var msg: FSEventMessage? = connection.getMessage()
-            if (msg != null) eventReceiveQueue.put(msg) else break
-        }
+        try {
+            while (connection.isConnected() && !closeReserved) {
+                val msg: FSEventMessage = connection.getMessage()
+                eventReceiveQueue.put(msg)
+            }
+        } catch (e: Exception) {
+            if (verbose) {
+                println("Stopping FSEventConnworker due to socket is dead")
+                e.printStackTrace()
+            }
+        } finally {
+            closeReserved = true
+            if (!onCloseCalled) {
+                onCloseCalled = true
+                listener?.onClose()
+            }
+            sendMsgThread.interrupt()
+            handleMsgThread.interrupt()
 
-        // connection lost
-        if (verbose) println("Stopping FSEventConnworker due to socket is dead")
-        closeReserved = true
-        sendMsgThread.interrupt()
-        handleMsgThread.interrupt()
-        if (!onCloseCalled) {
-
-            onCloseCalled = true
-            listener?.onClose()
+            try {
+                connection.close()
+            } catch (_: Exception) {}
         }
-        if (connection.isConnected()) connection.close()
     }
     val handleMsgThread = Thread {
         while ((connection.isConnected() && !closeReserved) || !eventReceiveQueue.isEmpty()) {
@@ -64,12 +71,13 @@ open class FSEventConnWorker(
             handleMsgThread.interrupt()
 
             if (!onCloseCalled) {
-
                 onCloseCalled = true
                 listener?.onClose()
             }
 
-            if (connection.isConnected()) connection.close()
+            try {
+                connection.close()
+            } catch (_: Exception) {}
         }
 
     fun run() {
