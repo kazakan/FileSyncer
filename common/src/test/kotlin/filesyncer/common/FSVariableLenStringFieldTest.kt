@@ -31,6 +31,7 @@ class FSVariableLenStringFieldTest {
         byteBuffer.clear()
         reconstructedField.unmarshall(byteBuffer)
 
+        assertEquals(field.getByteNums(), reconstructedField.getByteNums())
         assertEquals(field.size, reconstructedField.size)
         assertEquals(field.str, reconstructedField.str)
     }
@@ -46,6 +47,7 @@ class FSVariableLenStringFieldTest {
         byteBuffer.clear()
         reconstructedField.unmarshall(byteBuffer)
 
+        assertEquals(field.getByteNums(), reconstructedField.getByteNums())
         assertEquals(field.size, reconstructedField.size)
         assertEquals(field.str, reconstructedField.str)
     }
