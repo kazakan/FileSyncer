@@ -16,12 +16,11 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
     var running = false
     var repoDir = rootPath.resolve(File("repo"))
 
+    // main loop accepts connection from client
     var mainloopThread = Thread {
-        var ss = ServerSocket(port)
+        val ss = ServerSocket(port)
         running = true
-        var i = 0
         while (running) {
-
             val socket = ss.accept()
             val worker = FSServerSideSession(socket, userManager, repoDir, verbose)
             if (verbose) {
@@ -33,15 +32,15 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
     }
 
     var fileDownloadLoopThread = Thread {
-        var fss = ServerSocket(7777)
+        val fss = ServerSocket(7777)
         while (running) {
-            var socket = fss.accept()
+            val socket = fss.accept()
             val fileDownloadWorkerThread = Thread {
                 if (verbose) {
                     println("Start download file from ${socket.remoteSocketAddress.toString()}")
                 }
-                var ios = socket.getInputStream()
-                var dios = DataInputStream(ios)
+                val ios = socket.getInputStream()
+                val dios = DataInputStream(ios)
                 val fsize = dios.readLong()
                 val fnameLen = dios.readInt()
                 val fnameByteArr = ios.readNBytes(fnameLen)
@@ -63,6 +62,7 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
     }
 
     fun initialize() {
+        // check repository folder is valid
         val rootDir = rootPath
         if (!rootDir.exists()) {
             if (!rootDir.mkdir()) throw Error("Failed to mkdir() $rootDir.")
@@ -97,6 +97,7 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
         fileDownloadLoopThread.interrupt()
     }
 
+    // broadcast message to all alive event connections
     override fun broadcast(msg: FSEventMessage) {
         println("Broadcast msg code=${msg.mEventcode}, ID=${msg.userIdField.str}")
         for (entry in userManager.sessions) {
@@ -104,12 +105,14 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
         }
     }
 
+    // when a user's session is removed, alert it to all clients.
     override fun onUserSessionRemoved(user: FSUser) {
         this@FSServer.broadcast(
             FSEventMessage(EventType.BROADCAST_DISCONNECTED, userIdStr = user.id)
         )
     }
 
+    // when a user's session is added, alert it to all clients.
     override fun onUserSessionAdded(user: FSUser) {
         this@FSServer.broadcast(FSEventMessage(EventType.BROADCAST_CONNECTED, userIdStr = user.id))
     }
