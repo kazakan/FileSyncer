@@ -1,6 +1,6 @@
 package filesyncer.server
 
-import filesyncer.common.FSEventConnWorker
+import filesyncer.common.FSSession
 import filesyncer.common.FSUser
 import filesyncer.common.FSUserManager
 import java.io.File
@@ -13,7 +13,7 @@ class FSSimpleUserManager(
     val listener: FSUserManager.FSUserManagerListener? = null
 ) : FSUserManager {
 
-    var sessions = HashMap<FSUser, FSEventConnWorker>()
+    var sessions = HashMap<FSUser, FSSession>()
     var users = HashSet<FSUser>()
     var userDataFile = repositoryRoot.resolve("FSUserData.txt")
 
@@ -35,7 +35,7 @@ class FSSimpleUserManager(
         return users.contains(user)
     }
 
-    override fun addUserSession(user: FSUser, session: FSEventConnWorker): FSEventConnWorker? {
+    override fun addUserSession(user: FSUser, session: FSSession): FSSession? {
         if (!userExists(user)) return null
         if (sessions[user] == null) {
             if (verbose) println("Add User ${user.id}'s Session")
@@ -77,7 +77,7 @@ class FSSimpleUserManager(
     override fun removeClosedConnection() {
         var removeLists = mutableListOf<FSUser>()
         for (entry in sessions) {
-            if (entry.value.isClosed()) {
+            if (entry.value.state == FSSession.State.CLOSED) {
                 if (verbose) println("${entry.value} seems to dead. Add to session removal list")
                 removeLists.add(entry.key)
             }

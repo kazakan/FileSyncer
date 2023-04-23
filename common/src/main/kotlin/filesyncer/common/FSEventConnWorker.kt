@@ -7,12 +7,18 @@ import message.FSEventMessage
 open class FSEventConnWorker(
     var socket: Socket,
     var eventHandler: FSEventMessageHandler? = null,
-    val verbose: Boolean = false
+    val verbose: Boolean = false,
+    var listener: FSEventConnWorker.StateChangeListener? = null
 ) {
+    interface StateChangeListener {
+        fun onStart()
+        fun onClose()
+    }
     val connection = FSEventConnection(socket, verbose)
     private val eventSendQueue = LinkedBlockingQueue<FSEventMessage>()
     private val eventReceiveQueue = LinkedBlockingQueue<FSEventMessage>()
     private var closeReserved = false
+    private var onCloseCalled = false
 
     val sendMsgThread = Thread {
         while (connection.isConnected() && !closeReserved) {
@@ -34,6 +40,11 @@ open class FSEventConnWorker(
         closeReserved = true
         sendMsgThread.interrupt()
         handleMsgThread.interrupt()
+        if (!onCloseCalled) {
+
+            onCloseCalled = true
+            listener?.onClose()
+        }
         if (connection.isConnected()) connection.close()
     }
     val handleMsgThread = Thread {
@@ -52,10 +63,17 @@ open class FSEventConnWorker(
             receiveMsgThread.interrupt()
             handleMsgThread.interrupt()
 
+            if (!onCloseCalled) {
+
+                onCloseCalled = true
+                listener?.onClose()
+            }
+
             if (connection.isConnected()) connection.close()
         }
 
     fun run() {
+        listener?.onStart()
         sendMsgThread.uncaughtExceptionHandler = threadUncaughtExceptionHandler
         receiveMsgThread.uncaughtExceptionHandler = threadUncaughtExceptionHandler
         handleMsgThread.uncaughtExceptionHandler = threadUncaughtExceptionHandler
@@ -70,6 +88,10 @@ open class FSEventConnWorker(
         sendMsgThread.interrupt()
         receiveMsgThread.interrupt()
         handleMsgThread.interrupt()
+        if (!onCloseCalled) {
+            onCloseCalled = true
+            listener?.onClose()
+        }
         if (connection.isConnected()) connection.close()
     }
 
