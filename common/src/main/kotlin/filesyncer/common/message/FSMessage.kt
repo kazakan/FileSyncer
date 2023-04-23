@@ -7,13 +7,15 @@ abstract class FSMessage {
     var mBytesNums: Int = 0
 
     fun marshall(): ByteBuffer? {
-        mBytesNums = getByteNums()
-        mBytebuffer = ByteBuffer.allocate(mBytesNums)
+        synchronized(this) {
+            mBytesNums = getByteNums()
+            mBytebuffer = ByteBuffer.allocate(mBytesNums)
 
-        mBytebuffer!!.putInt(mBytesNums)
-        marshallBody()
+            mBytebuffer!!.putInt(mBytesNums)
+            marshallBody()
 
-        return mBytebuffer
+            return mBytebuffer
+        }
     }
 
     fun unmarshall(byteBuffer: ByteBuffer) {
