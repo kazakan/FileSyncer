@@ -1,5 +1,6 @@
 package message
 
+import filesyncer.common.message.FSMessage
 import java.nio.ByteBuffer
 
 object FMEVENT_TYPE {

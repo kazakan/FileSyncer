@@ -1,6 +1,6 @@
 package filesyncer.server
 
-import message.FSMessage
+import filesyncer.common.message.FSMessage
 
 interface FSMessageBroadcaster<T : FSMessage> {
     fun broadcast(msg: T)

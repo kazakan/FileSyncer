@@ -1,4 +1,4 @@
-package message
+package filesyncer.common.message
 
 import java.nio.ByteBuffer
 
