@@ -10,18 +10,35 @@ import java.nio.ByteBuffer
 import kotlin.jvm.Throws
 import message.FSEventMessage
 
+/**
+ * Provide easy interface of send and receiving FSEventMessage.
+ *
+ * @property socket Socket to communicate with
+ * @property verbose verbosity, true for show logs else false
+ */
 class FSEventConnection(var socket: Socket, val verbose: Boolean = false) {
 
     private var dous = DataOutputStream(BufferedOutputStream(socket.getOutputStream()))
     private var dios = DataInputStream(BufferedInputStream(socket.getInputStream()))
     private var _dead = false
 
+    /**
+     * Send message through socket connection.
+     *
+     * @param message Message to send
+     */
     fun sendMessage(message: FSEventMessage) {
         val buffer = message.marshall()
         dous.write(buffer!!.array())
         dous.flush()
     }
 
+    /**
+     * Get message coming through socket connection. This is blocking call.
+     *
+     * @return Message got.
+     * @throws IOException
+     */
     @Throws(IOException::class)
     fun getMessage(): FSEventMessage {
         val msg = FSEventMessage()
