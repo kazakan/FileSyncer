@@ -6,8 +6,8 @@ import java.io.DataOutputStream
 import java.io.File
 import java.net.Socket
 import java.util.concurrent.LinkedBlockingQueue
-import message.FMEVENT_TYPE
 import message.FSEventMessage
+import message.FSEventMessage.EventType
 
 enum class FSCLIENT_STATE {
     DISCONNECTED,
@@ -62,40 +62,40 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FSClientFrontInter
     override fun handleMessage(msg: FSEventMessage) {
         println("client code = ${msg.mEventcode}, id: ${msg.userIdField.str}")
         when (msg.mEventcode) {
-            FMEVENT_TYPE.NONE -> {
+            EventType.NONE -> {
                 // do nothing
             }
-            FMEVENT_TYPE.ASK_ALIVE -> {}
-            FMEVENT_TYPE.ANSWER_ALIVE -> {}
-            FMEVENT_TYPE.LOGIN_REQUEST -> {}
-            FMEVENT_TYPE.LOGIN_GRANTED -> {
+            EventType.ASK_ALIVE -> {}
+            EventType.ANSWER_ALIVE -> {}
+            EventType.LOGIN_REQUEST -> {}
+            EventType.LOGIN_GRANTED -> {
                 waitingLoginRequest = REQUEST_STATE.GRANTED
                 state = FSCLIENT_STATE.LOGGEDIN
             }
-            FMEVENT_TYPE.LOGIN_REJECTED -> {
+            EventType.LOGIN_REJECTED -> {
                 waitingLoginRequest = REQUEST_STATE.REJECTED
             }
-            FMEVENT_TYPE.LOGOUT -> {}
-            FMEVENT_TYPE.BROADCAST_CONNECTED -> {
+            EventType.LOGOUT -> {}
+            EventType.BROADCAST_CONNECTED -> {
                 _reportMsgQueue.put("${msg.userIdField.str} connected.")
             }
-            FMEVENT_TYPE.BROADCAST_DISCONNECTED -> {
+            EventType.BROADCAST_DISCONNECTED -> {
                 _reportMsgQueue.put("${msg.userIdField.str} disconnected.")
             }
-            FMEVENT_TYPE.UPLOAD_DONE -> {
+            EventType.UPLOAD_DONE -> {
                 _reportMsgQueue.put("${msg.extraStrField.str} updated to server.")
             }
-            FMEVENT_TYPE.DOWNLOAD_DONE -> {}
-            FMEVENT_TYPE.UPLOAD_REQUEST -> {}
-            FMEVENT_TYPE.DOWNLOAD_REQUEST -> {}
-            FMEVENT_TYPE.REGISTER_REQUEST -> {}
-            FMEVENT_TYPE.REGISTER_GRANTED -> {
+            EventType.DOWNLOAD_DONE -> {}
+            EventType.UPLOAD_REQUEST -> {}
+            EventType.DOWNLOAD_REQUEST -> {}
+            EventType.REGISTER_REQUEST -> {}
+            EventType.REGISTER_GRANTED -> {
                 waitingRegisterRequest = REQUEST_STATE.GRANTED
             }
-            FMEVENT_TYPE.REGISTER_REJECTED -> {
+            EventType.REGISTER_REJECTED -> {
                 waitingRegisterRequest = REQUEST_STATE.REJECTED
             }
-            FMEVENT_TYPE.LISTFOLDER_RESPONSE -> {
+            EventType.LISTFOLDER_RESPONSE -> {
                 waitingListFolderRequest = REQUEST_STATE.GRANTED
                 _cloudFileLists = msg.fileListField.strs.toList()
             }
@@ -132,7 +132,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FSClientFrontInter
 
         try {
             waitingLoginRequest = REQUEST_STATE.WAITING
-            runner!!.putMsgToSendQueue(FSEventMessage(FMEVENT_TYPE.LOGIN_REQUEST, id, password))
+            runner!!.putMsgToSendQueue(FSEventMessage(EventType.LOGIN_REQUEST, id, password))
         } catch (e: Exception) {
             waitingLoginRequest = REQUEST_STATE.NOT_WAITING
             return false
@@ -169,7 +169,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FSClientFrontInter
 
         try {
             waitingRegisterRequest = REQUEST_STATE.WAITING
-            runner!!.putMsgToSendQueue(FSEventMessage(FMEVENT_TYPE.REGISTER_REQUEST, id, password))
+            runner!!.putMsgToSendQueue(FSEventMessage(EventType.REGISTER_REQUEST, id, password))
         } catch (e: Exception) {
             waitingRegisterRequest = REQUEST_STATE.NOT_WAITING
             return false
@@ -199,7 +199,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FSClientFrontInter
 
         try {
             waitingListFolderRequest = REQUEST_STATE.WAITING
-            runner!!.putMsgToSendQueue(FSEventMessage(FMEVENT_TYPE.LISTFOLDER_REQUEST))
+            runner!!.putMsgToSendQueue(FSEventMessage(EventType.LISTFOLDER_REQUEST))
         } catch (e: Exception) {
             waitingListFolderRequest = REQUEST_STATE.NOT_WAITING
             return emptyList()
@@ -255,7 +255,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FSClientFrontInter
     }
 
     override fun disconnect() {
-        runner?.putMsgToSendQueue(FSEventMessage(FMEVENT_TYPE.LOGOUT, _id, _passwd))
+        runner?.putMsgToSendQueue(FSEventMessage(EventType.LOGOUT, _id, _passwd))
         runner?.stop()
     }
 

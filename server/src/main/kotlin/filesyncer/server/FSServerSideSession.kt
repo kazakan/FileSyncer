@@ -3,8 +3,8 @@ package filesyncer.server
 import filesyncer.common.*
 import java.io.File
 import java.net.Socket
-import message.FMEVENT_TYPE
 import message.FSEventMessage
+import message.FSEventMessage.EventType
 import message.FSVarLenStringListField
 
 class FSServerSideSession(
@@ -23,8 +23,8 @@ class FSServerSideSession(
                     if (verbose)
                         println("Got Msg with Code=${msg.mEventcode}, ID=${msg.userIdField.str}")
                     when (msg.mEventcode) {
-                        FMEVENT_TYPE.ANSWER_ALIVE -> {}
-                        FMEVENT_TYPE.LOGIN_REQUEST -> {
+                        EventType.ANSWER_ALIVE -> {}
+                        EventType.LOGIN_REQUEST -> {
                             // check user and make response
                             if (verbose) println("Got login requested by ${msg.userIdField.str}")
                             val _user = FSUser(msg.userIdField.str, msg.userPasswordField.str)
@@ -39,7 +39,7 @@ class FSServerSideSession(
                                             "Login requested by ${msg.userIdField.str} rejected."
                                         )
                                     connWorker.putMsgToSendQueue(
-                                        FSEventMessage(FMEVENT_TYPE.LOGIN_REJECTED)
+                                        FSEventMessage(EventType.LOGIN_REJECTED)
                                     )
                                 } else {
                                     // granted
@@ -50,7 +50,7 @@ class FSServerSideSession(
                                     user = _user
                                     state = State.LOGGED_IN
                                     connWorker.putMsgToSendQueue(
-                                        FSEventMessage(FMEVENT_TYPE.LOGIN_GRANTED)
+                                        FSEventMessage(EventType.LOGIN_GRANTED)
                                     )
                                 }
                             } else {
@@ -58,38 +58,38 @@ class FSServerSideSession(
                                 if (verbose)
                                     println("Login requested by ${msg.userIdField.str} rejected.")
                                 connWorker.putMsgToSendQueue(
-                                    FSEventMessage(FMEVENT_TYPE.LOGIN_REJECTED)
+                                    FSEventMessage(EventType.LOGIN_REJECTED)
                                 )
                             }
                         }
-                        FMEVENT_TYPE.LOGOUT -> {
+                        EventType.LOGOUT -> {
                             // logout and broadcast msg
                             val user = FSUser(msg.userIdField.str, msg.userPasswordField.str)
                             if (verbose) println("User ${msg.userIdField.str} logged out.")
                             // userManager.removeUserSession(user)
                         }
-                        FMEVENT_TYPE.REGISTER_REQUEST -> {
+                        EventType.REGISTER_REQUEST -> {
                             val user = FSUser(msg.userIdField.str, msg.userPasswordField.str)
                             val result = userManager.registerUser(user)
                             if (result) {
                                 connWorker.putMsgToSendQueue(
-                                    FSEventMessage(FMEVENT_TYPE.REGISTER_GRANTED)
+                                    FSEventMessage(EventType.REGISTER_GRANTED)
                                 )
                                 if (verbose) println("User ${msg.userIdField.str} registered.")
                             } else {
                                 connWorker.putMsgToSendQueue(
-                                    FSEventMessage(FMEVENT_TYPE.REGISTER_REJECTED)
+                                    FSEventMessage(EventType.REGISTER_REJECTED)
                                 )
                                 if (verbose)
                                     println("Register of User ${msg.userIdField.str} rejected.")
                             }
                         }
-                        FMEVENT_TYPE.LISTFOLDER_REQUEST -> {
+                        EventType.LISTFOLDER_REQUEST -> {
                             val names = repoDir.listFiles()?.filter { it.isFile }?.map { it.name }
                             if (verbose) println("List folder request handled.")
                             if (names != null) {
                                 connWorker.putMsgToSendQueue(
-                                    FSEventMessage(FMEVENT_TYPE.LISTFOLDER_RESPONSE).apply {
+                                    FSEventMessage(EventType.LISTFOLDER_RESPONSE).apply {
                                         this.fileListField = FSVarLenStringListField(names)
                                     }
                                 )

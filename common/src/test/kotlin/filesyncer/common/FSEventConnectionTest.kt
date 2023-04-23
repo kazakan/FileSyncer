@@ -2,8 +2,8 @@ package filesyncer.common
 
 import java.net.ServerSocket
 import java.net.Socket
-import message.FMEVENT_TYPE
 import message.FSEventMessage
+import message.FSEventMessage.EventType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -68,9 +68,9 @@ class FSEventConnectionTest {
     @Test
     fun testVarLenMessageSendAndReceive() {
         val PORT = 5000
-        val msg1 = FSEventMessage(FMEVENT_TYPE.BROADCAST_CONNECTED, "aaaaa")
-        val msg2 = FSEventMessage(FMEVENT_TYPE.BROADCAST_CONNECTED, "bbbbb")
-        val msg3 = FSEventMessage(FMEVENT_TYPE.BROADCAST_CONNECTED, "ccccc")
+        val msg1 = FSEventMessage(EventType.BROADCAST_CONNECTED, "aaaaa")
+        val msg2 = FSEventMessage(EventType.BROADCAST_CONNECTED, "bbbbb")
+        val msg3 = FSEventMessage(EventType.BROADCAST_CONNECTED, "ccccc")
 
         var runClient = Runnable {
             var client = Socket("localhost", PORT)

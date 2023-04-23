@@ -1,7 +1,7 @@
 package filesyncer.common
 
-import message.FMEVENT_TYPE
 import message.FSEventMessage
+import message.FSEventMessage.EventType
 import message.FSVarLenStringListField
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -24,7 +24,7 @@ class FSEventMessageTest {
         assertEquals(msg.extraStrField.str, reconstructedMsg.extraStrField.str)
 
         // With MESSAGE
-        msg = FSEventMessage(FMEVENT_TYPE.LOGIN_REQUEST, "ididid", "passwspassws")
+        msg = FSEventMessage(EventType.LOGIN_REQUEST, "ididid", "passwspassws")
         reconstructedMsg = FSEventMessage()
         byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -40,7 +40,7 @@ class FSEventMessageTest {
 
     @Test
     fun testNONE() {
-        val msg = FSEventMessage(FMEVENT_TYPE.NONE, "ididid", "passwspassws", "extrastr")
+        val msg = FSEventMessage(EventType.NONE, "ididid", "passwspassws", "extrastr")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -56,7 +56,7 @@ class FSEventMessageTest {
 
     @Test
     fun testLoginRequest() {
-        val msg = FSEventMessage(FMEVENT_TYPE.LOGIN_REQUEST, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.LOGIN_REQUEST, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -71,7 +71,7 @@ class FSEventMessageTest {
 
     @Test
     fun testLoginGranted() {
-        val msg = FSEventMessage(FMEVENT_TYPE.LOGIN_GRANTED, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.LOGIN_GRANTED, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -86,7 +86,7 @@ class FSEventMessageTest {
 
     @Test
     fun testLoginRejected() {
-        val msg = FSEventMessage(FMEVENT_TYPE.LOGIN_REJECTED, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.LOGIN_REJECTED, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -101,7 +101,7 @@ class FSEventMessageTest {
 
     @Test
     fun testLogout() {
-        val msg = FSEventMessage(FMEVENT_TYPE.LOGOUT, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.LOGOUT, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -116,7 +116,7 @@ class FSEventMessageTest {
 
     @Test
     fun testBroadcastConnected() {
-        val msg = FSEventMessage(FMEVENT_TYPE.BROADCAST_CONNECTED, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.BROADCAST_CONNECTED, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -131,7 +131,7 @@ class FSEventMessageTest {
 
     @Test
     fun testBroadcastDisconnected() {
-        val msg = FSEventMessage(FMEVENT_TYPE.BROADCAST_DISCONNECTED, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.BROADCAST_DISCONNECTED, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -146,7 +146,7 @@ class FSEventMessageTest {
 
     @Test
     fun testUploadDone() {
-        val msg = FSEventMessage(FMEVENT_TYPE.UPLOAD_DONE, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.UPLOAD_DONE, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -161,7 +161,7 @@ class FSEventMessageTest {
     @Test
     fun testListFolderRequest() {
         val list = arrayListOf("aaa", "bbb", "ccc")
-        val msg = FSEventMessage(FMEVENT_TYPE.LISTFOLDER_REQUEST, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.LISTFOLDER_REQUEST, "ididid", "passwspassws")
         msg.fileListField = FSVarLenStringListField(list)
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
@@ -179,7 +179,7 @@ class FSEventMessageTest {
     @Test
     fun testListFolderResponse() {
         val list = arrayListOf("aaa", "bbb", "ccc")
-        val msg = FSEventMessage(FMEVENT_TYPE.LISTFOLDER_RESPONSE, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.LISTFOLDER_RESPONSE, "ididid", "passwspassws")
         msg.fileListField = FSVarLenStringListField(list)
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
@@ -196,7 +196,7 @@ class FSEventMessageTest {
 
     @Test
     fun testRegisterRequest() {
-        val msg = FSEventMessage(FMEVENT_TYPE.REGISTER_REQUEST, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.REGISTER_REQUEST, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -211,7 +211,7 @@ class FSEventMessageTest {
 
     @Test
     fun testRegisterGranted() {
-        val msg = FSEventMessage(FMEVENT_TYPE.REGISTER_GRANTED, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.REGISTER_GRANTED, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -226,7 +226,7 @@ class FSEventMessageTest {
 
     @Test
     fun testRegisterRejected() {
-        val msg = FSEventMessage(FMEVENT_TYPE.REGISTER_GRANTED, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.REGISTER_GRANTED, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)

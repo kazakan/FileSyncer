@@ -6,8 +6,8 @@ import java.io.DataInputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.net.ServerSocket
-import message.FMEVENT_TYPE
 import message.FSEventMessage
+import message.FSEventMessage.EventType
 
 class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = false) :
     FSMessageBroadcaster<FSEventMessage>, FSUserManager.FSUserManagerListener {
@@ -55,7 +55,7 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
                 if (verbose) {
                     println("Done download file")
                 }
-                broadcast(FSEventMessage(FMEVENT_TYPE.UPLOAD_DONE, extraStr = fname))
+                broadcast(FSEventMessage(EventType.UPLOAD_DONE, extraStr = fname))
             }
 
             fileDownloadWorkerThread.start()
@@ -106,13 +106,11 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
 
     override fun onUserSessionRemoved(user: FSUser) {
         this@FSServer.broadcast(
-            FSEventMessage(FMEVENT_TYPE.BROADCAST_DISCONNECTED, userIdStr = user.id)
+            FSEventMessage(EventType.BROADCAST_DISCONNECTED, userIdStr = user.id)
         )
     }
 
     override fun onUserSessionAdded(user: FSUser) {
-        this@FSServer.broadcast(
-            FSEventMessage(FMEVENT_TYPE.BROADCAST_CONNECTED, userIdStr = user.id)
-        )
+        this@FSServer.broadcast(FSEventMessage(EventType.BROADCAST_CONNECTED, userIdStr = user.id))
     }
 }
