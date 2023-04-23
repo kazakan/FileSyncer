@@ -52,6 +52,8 @@ class FSSimpleUserManager(
             if (verbose) println("Remove User ${user.id}'s Session")
             sessions.remove(user)
             listener?.onUserSessionRemoved(user)
+        } else {
+            if (verbose) println("Cannot Remove User ${user.id}'s Session. Already null")
         }
     }
 
@@ -76,9 +78,12 @@ class FSSimpleUserManager(
         var removeLists = mutableListOf<FSUser>()
         for (entry in sessions) {
             if (entry.value.isClosed()) {
+                if (verbose) println("${entry.value} seems to dead. Add to session removal list")
                 removeLists.add(entry.key)
             }
         }
+        if (verbose && removeLists.size > 0)
+            println("Removing ${removeLists.size} sessions whose connection is dead.")
         for (user in removeLists) {
             removeUserSession(user)
         }

@@ -55,7 +55,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FSClientFrontInter
     fun startConnection(address: String, port: Int) {
         println("Creating connworker")
         val socket = Socket(address, port)
-        runner = FSEventConnWorker(socket, this)
+        runner = FSEventConnWorker(socket, this, true)
         runner!!.run()
     }
 
@@ -82,7 +82,9 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FSClientFrontInter
             FMEVENT_TYPE.BROADCAST_DISCONNECTED -> {
                 _reportMsgQueue.put("${msg.userIdField.str} disconnected.")
             }
-            FMEVENT_TYPE.UPLOAD_DONE -> {}
+            FMEVENT_TYPE.UPLOAD_DONE -> {
+                _reportMsgQueue.put("${msg.extraStrField.str} updated to server.")
+            }
             FMEVENT_TYPE.DOWNLOAD_DONE -> {}
             FMEVENT_TYPE.UPLOAD_REQUEST -> {}
             FMEVENT_TYPE.DOWNLOAD_REQUEST -> {}

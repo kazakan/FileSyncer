@@ -8,12 +8,13 @@ import java.net.Socket
 import java.nio.ByteBuffer
 import message.FSEventMessage
 
-class FSEventConnection(var socket: Socket) {
+class FSEventConnection(var socket: Socket, val verbose: Boolean = false) {
 
     var ous: OutputStream = socket.getOutputStream()
     var dous: DataOutputStream = DataOutputStream(ous)
     var ios: InputStream = socket.getInputStream()
     var dios = DataInputStream(ios)
+    var _dead = false
 
     fun sendMessage(message: FSEventMessage) {
         val buffer = message.marshall()
@@ -27,6 +28,11 @@ class FSEventConnection(var socket: Socket) {
         try {
             nBytes = dios.readInt()
         } catch (e: Exception) {
+            if (verbose) {
+                e.printStackTrace()
+                println("Socket is dead.")
+            }
+            _dead = true
             close()
             return null
         }
@@ -42,12 +48,23 @@ class FSEventConnection(var socket: Socket) {
     }
 
     fun close() {
+        if (verbose) println("Closing FSEventConnection with ${socket.inetAddress}")
         dous.flush()
         dous.close()
+        dios.close()
         socket.close()
+        _dead = true
     }
 
     fun isConnected(): Boolean {
-        return socket.isConnected && !socket.isClosed
+        return socket.isConnected && !socket.isClosed || !_dead
+    }
+
+    fun isClosed(): Boolean {
+        return socket.isClosed || _dead
+    }
+
+    fun isNotConnectedYet(): Boolean {
+        return !socket.isConnected && !isClosed()
     }
 }

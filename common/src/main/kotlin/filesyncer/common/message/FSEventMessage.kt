@@ -62,7 +62,9 @@ class FSEventMessage(
             FMEVENT_TYPE.BROADCAST_DISCONNECTED -> {
                 userIdField.marshall(mBytebuffer!!)
             }
-            FMEVENT_TYPE.UPLOAD_DONE -> {}
+            FMEVENT_TYPE.UPLOAD_DONE -> {
+                extraStrField.marshall(mBytebuffer!!)
+            }
             FMEVENT_TYPE.DOWNLOAD_DONE -> {}
             FMEVENT_TYPE.UPLOAD_REQUEST -> {
                 extraStrField.marshall(mBytebuffer!!) // file name!
@@ -104,7 +106,9 @@ class FSEventMessage(
             FMEVENT_TYPE.BROADCAST_DISCONNECTED -> {
                 userIdField.unmarshall(byteBuffer)
             }
-            FMEVENT_TYPE.UPLOAD_DONE -> {}
+            FMEVENT_TYPE.UPLOAD_DONE -> {
+                extraStrField.unmarshall(byteBuffer)
+            }
             FMEVENT_TYPE.DOWNLOAD_DONE -> {}
             FMEVENT_TYPE.UPLOAD_REQUEST -> {
                 extraStrField.unmarshall(byteBuffer)
@@ -147,7 +151,9 @@ class FSEventMessage(
             FMEVENT_TYPE.BROADCAST_DISCONNECTED -> {
                 ret += userIdField.getByteNums()
             }
-            FMEVENT_TYPE.UPLOAD_DONE -> {}
+            FMEVENT_TYPE.UPLOAD_DONE -> {
+                ret += extraStrField.getByteNums()
+            }
             FMEVENT_TYPE.DOWNLOAD_DONE -> {}
             FMEVENT_TYPE.UPLOAD_REQUEST -> {
                 ret += extraStrField.getByteNums()

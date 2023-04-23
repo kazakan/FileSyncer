@@ -69,6 +69,7 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
                 if (verbose) {
                     println("Done download file")
                 }
+                broadcast(FSEventMessage(FMEVENT_TYPE.UPLOAD_DONE, extraStr = fname))
             }
 
             fileDownloadWorkerThread.start()
@@ -119,7 +120,7 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
     }
 
     fun createConnWorker(socket: Socket): FSEventConnWorker {
-        val connWorker = FSEventConnWorker(socket)
+        val connWorker = FSEventConnWorker(socket, verbose = verbose)
         val handler =
             object : FSEventMessageHandler {
                 override fun handleMessage(msg: FSEventMessage) {

@@ -9,11 +9,10 @@ open class FSEventConnWorker(
     var eventHandler: FSEventMessageHandler? = null,
     val verbose: Boolean = false
 ) {
-    val connection = FSEventConnection(socket)
+    val connection = FSEventConnection(socket, verbose)
     private val eventSendQueue = LinkedBlockingQueue<FSEventMessage>()
     private val eventReceiveQueue = LinkedBlockingQueue<FSEventMessage>()
-    var closeReserved = false
-    private var _closed = false
+    private var closeReserved = false
 
     val sendMsgThread = Thread {
         while (connection.isConnected() && !closeReserved) {
@@ -31,11 +30,11 @@ open class FSEventConnWorker(
         }
 
         // connection lost
+        if (verbose) println("Stopping FSEventConnworker due to socket is dead")
         closeReserved = true
         sendMsgThread.interrupt()
         handleMsgThread.interrupt()
         if (connection.isConnected()) connection.close()
-        _closed = true
     }
     val handleMsgThread = Thread {
         while ((connection.isConnected() && !closeReserved) || !eventReceiveQueue.isEmpty()) {
@@ -53,8 +52,7 @@ open class FSEventConnWorker(
             receiveMsgThread.interrupt()
             handleMsgThread.interrupt()
 
-            if (socket.isConnected && !socket.isClosed) connection.close()
-            _closed = true
+            if (connection.isConnected()) connection.close()
         }
 
     fun run() {
@@ -69,9 +67,10 @@ open class FSEventConnWorker(
 
     fun stop() {
         closeReserved = true
-        // join()
+        sendMsgThread.interrupt()
+        receiveMsgThread.interrupt()
+        handleMsgThread.interrupt()
         if (connection.isConnected()) connection.close()
-        _closed = true
     }
 
     fun join() {
@@ -89,6 +88,10 @@ open class FSEventConnWorker(
     }
 
     fun isClosed(): Boolean {
-        return _closed
+        return connection.isClosed()
+    }
+
+    fun isNotConnectedYet(): Boolean {
+        return connection.isNotConnectedYet()
     }
 }
