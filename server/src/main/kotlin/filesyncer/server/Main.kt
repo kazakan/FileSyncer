@@ -3,7 +3,7 @@ package filesyncer.server
 import java.io.File
 import kotlin.system.exitProcess
 
-fun main(argv: ArrayList<String>) {
+fun main(argv: Array<String>) {
     var folder = "~/fsrepo"
     var servicePort = 5050
 
