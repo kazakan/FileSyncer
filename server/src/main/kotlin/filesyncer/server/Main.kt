@@ -17,7 +17,7 @@ fun main(argv: Array<String>) {
         }
     } catch (e: Exception) {
         println("Wrong argument given")
-        println("Arguments would be [folder [webPort]]")
+        println("Arguments would be [folder [servicePort]]")
         println("Arguments")
         println("folder : folder to use as server repository. String type. default=\"~/fsrepo\"")
         println("servicePort : port number where clients connect. int type. default=5050")
