@@ -1,3 +1,5 @@
+uploadList = [];
+
 function uploadFile(path) {
     var params = new URLSearchParams();
     params.append("fname", path);
@@ -10,6 +12,53 @@ function uploadFile(path) {
             alert(error);
         }
     );
+}
+function addToUploadList(path) {
+    for (var i = 0; i < uploadList.length; ++i) {
+        if (uploadList[i] == path) return;
+    }
+    uploadList.push(path);
+
+    var element = document.getElementById("upload-list");
+    element.innerHTML += uploadListRow(path);
+}
+
+function updateUploadListHtml() {
+    var listElement = document.getElementById("upload-list");
+    listElement.innerHTML = "";
+    for (var i = 0; i < uploadList.length; ++i) {
+        listElement += uploadListRow(uploadList[i]);
+    }
+}
+
+function removeFromUploadList(path) {
+    if (uploadList.includes(path)) {
+        var idx = uploadList.indexOf(path);
+        uploadList.splice(idx, 1);
+
+        updateUploadListHtml();
+
+        return;
+    }
+}
+
+function upload() {
+    for (var i = 0; i < uploadList.length; ++i) {
+        uploadFile(uploadList[i]);
+    }
+    uploadList = [];
+    updateUploadListHtml();
+}
+
+function uploadListRow(path) {
+    var ret = '<div class="uploadRow">';
+    ret += path;
+    ret +=
+        '<button style="float: right" onclick="removeFromUploadList(\'' +
+        path +
+        "')\">x</button>";
+    ret += "</div>";
+    return ret;
 }
 
 function downloadFile(path) {}
@@ -41,13 +90,13 @@ function getFileList(dir) {
                     row +=
                         '<button style="float:right;" disabled="">download</button>';
 
-                    // upload button
+                    // add to upload list button
                     row +=
-                        "<button onclick=\"uploadFile('" +
+                        "<button onclick=\"addToUploadList('" +
                         result[i]["name"] +
                         '\')" style="float:right;" ';
                     if (!isLocal) row += 'disabled=""';
-                    row += ">upload</button>";
+                    row += ">Select</button>";
                     row +=
                         '<span style="float:right; margin-right:5px;">' +
                         result[i]["status"] +
@@ -77,7 +126,7 @@ function disconnect() {
 }
 
 function addReportMessage(msg) {
-    var messageWindow = document.getElementById("right-panel");
+    var messageWindow = document.getElementById("report-list");
     messageWindow.innerHTML += "<p>" + msg + "</p>";
     messageWindow.scrollTo(0, messageWindow.scrollHeight);
 }
