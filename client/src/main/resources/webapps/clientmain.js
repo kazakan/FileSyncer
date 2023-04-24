@@ -15,19 +15,20 @@ function uploadFile(path) {
 }
 function addToUploadList(path) {
     for (var i = 0; i < uploadList.length; ++i) {
-        if (uploadList[i] == path) return;
+        if (uploadList[i] == path) {
+            return;
+        }
     }
     uploadList.push(path);
 
-    var element = document.getElementById("upload-list");
-    element.innerHTML += uploadListRow(path);
+    updateUploadListHtml();
 }
 
 function updateUploadListHtml() {
     var listElement = document.getElementById("upload-list");
     listElement.innerHTML = "";
     for (var i = 0; i < uploadList.length; ++i) {
-        listElement += uploadListRow(uploadList[i]);
+        listElement.innerHTML += uploadListRow(uploadList[i]);
     }
 }
 
