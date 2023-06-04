@@ -2,9 +2,12 @@ package filesyncer.client
 
 import filesyncer.common.FSEventConnWorker
 import filesyncer.common.FSEventMessageHandler
+import filesyncer.common.FileWatcher
 import java.io.DataOutputStream
 import java.io.File
 import java.net.Socket
+import java.nio.file.StandardWatchEventKinds
+import java.nio.file.WatchEvent
 import java.util.concurrent.LinkedBlockingQueue
 import message.FSEventMessage
 import message.FSEventMessage.EventType
@@ -22,7 +25,8 @@ enum class REQUEST_STATE {
     REJECTED
 }
 
-class Client(var localRepoDir: File) : FSEventMessageHandler, FSClientFrontInterface {
+class Client(var localRepoDir: File) :
+    FSEventMessageHandler, FSClientFrontInterface, FileWatcher.OnFileChangedListener {
     var state = FSCLIENT_STATE.DISCONNECTED
     var runner: FSEventConnWorker? = null
     var front: FSClientFront? = null
@@ -39,6 +43,12 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FSClientFrontInter
     private var _cloudFileLists: List<String> = mutableListOf()
 
     private val _reportMsgQueue = LinkedBlockingQueue<String>()
+
+    private val _localRepoWatcher = FileWatcher(localRepoDir.toPath())
+
+    init {
+        _localRepoWatcher.fileChangedListener = this
+    }
 
     fun start() {
 
@@ -57,6 +67,8 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FSClientFrontInter
         val socket = Socket(address, port)
         runner = FSEventConnWorker(socket, this, true)
         runner!!.run()
+
+        _localRepoWatcher.run()
     }
 
     override fun handleMessage(msg: FSEventMessage) {
@@ -257,9 +269,22 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FSClientFrontInter
     override fun disconnect() {
         runner?.putMsgToSendQueue(FSEventMessage(EventType.LOGOUT, _id, _passwd))
         runner?.stop()
+
+        _localRepoWatcher.stop()
     }
 
     override fun takeReportMessage(): String? {
         return _reportMsgQueue.poll()
+    }
+
+    override fun onFileChanged(file: File, kind: WatchEvent.Kind<out Any>) {
+        // TODO : implement
+        if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
+            // TODO : implement
+        } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
+            // TODO : implement
+        } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
+            // TODO : implement
+        }
     }
 }
