@@ -9,11 +9,12 @@ class FSLogicalClock {
 
     /** Set [time] to max([value], [time]) */
     fun sync(value: Long) {
-        time = max(value, time)
+        synchronized(this) { time = max(value, time) }
     }
 
     /** Add 1 to [time] and return [time]. Call get() whenever you need clock value. */
     fun get(): Long {
-        return ++time
+        synchronized(this) { ++time }
+        return time
     }
 }
