@@ -31,6 +31,10 @@ class FSEventMessage(
         const val REGISTER_REQUEST: Int = 15 // request user register
         const val REGISTER_GRANTED: Int = 16 // response for REGISTER_REQUEST
         const val REGISTER_REJECTED: Int = 17
+
+        const val FILE_CREATE: Int = 15 // Tell file created
+        const val FILE_DELETE: Int = 16 // Tell file deleted
+        const val FILE_MODIFY: Int = 17 // Tell file modified
     }
 
     var mEventcode = eventCode
