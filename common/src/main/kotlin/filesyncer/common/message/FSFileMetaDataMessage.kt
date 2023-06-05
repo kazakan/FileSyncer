@@ -1,5 +1,6 @@
 package filesyncer.common.message
 
+import filesyncer.common.file.FSFileMetaData
 import java.io.File
 import java.nio.ByteBuffer
 import message.FSVarLenStringListField
@@ -39,5 +40,9 @@ class FSFileMetaDataMessage(
         ret += Long.SIZE_BYTES * 2 // fileSize, timeStamp
         ret += strListField.getByteNums()
         return ret
+    }
+
+    fun toFileMetaData(): FSFileMetaData {
+        return FSFileMetaData(name, fileSize, timeStamp, md5, path, owner, shared)
     }
 }
