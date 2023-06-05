@@ -3,7 +3,9 @@ package filesyncer.common
 import kotlin.math.max
 
 /** Simple LogicalClock class. */
-class FSLogicalClock(private var time: Long = 0L) {
+class FSLogicalClock {
+    var time = 0L
+        private set
 
     /** Set [time] to max([value], [time]) */
     fun sync(value: Long) {
