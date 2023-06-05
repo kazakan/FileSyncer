@@ -35,6 +35,7 @@ class FSEventMessage(
         const val FILE_CREATE: Int = 15 // Tell file created
         const val FILE_DELETE: Int = 16 // Tell file deleted
         const val FILE_MODIFY: Int = 17 // Tell file modified
+        const val SYNC: Int = 18 // Sync logical clock
     }
 
     var mEventcode = eventCode
@@ -82,6 +83,9 @@ class FSEventMessage(
             EventType.LISTFOLDER_RESPONSE -> {
                 fileListField.marshall(mBytebuffer!!)
             }
+            EventType.SYNC -> {
+                extraStrField.marshall(mBytebuffer!!) // logical clock value
+            }
             else -> {
                 // TODO("Raise error or ..")
             }
@@ -125,6 +129,9 @@ class FSEventMessage(
             }
             EventType.LISTFOLDER_RESPONSE -> {
                 fileListField.unmarshall(byteBuffer)
+            }
+            EventType.SYNC -> {
+                extraStrField.unmarshall(byteBuffer) // logical clock value
             }
             else -> {
                 // TODO("Raise error or ..")
@@ -170,6 +177,9 @@ class FSEventMessage(
             }
             EventType.LISTFOLDER_RESPONSE -> {
                 ret += fileListField.getByteNums()
+            }
+            EventType.SYNC -> {
+                ret += extraStrField.getByteNums() // logical clock value
             }
         }
 
