@@ -22,7 +22,7 @@ class FSRequestFsm {
         stateChangeListener?.onStateChange(state)
     }
 
-    fun wait() {
+    fun waitLock() {
         state = STATE.WAITING
         stateChangeListener?.onStateChange(state)
         while (state == STATE.WAITING) {
