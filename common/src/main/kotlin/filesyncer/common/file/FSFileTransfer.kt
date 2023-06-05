@@ -1,12 +1,14 @@
 package filesyncer.common.file
 
 import filesyncer.common.FSFileHash
+import filesyncer.common.message.FSFileMetaDataMessage
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.net.ServerSocket
 import java.net.Socket
+import java.nio.ByteBuffer
 
 class FSFileTransfer(
     val repoDir: File,
@@ -37,21 +39,24 @@ class FSFileTransfer(
 
                 val ios = socket.getInputStream()
                 val dios = DataInputStream(ios)
-                val fsize = dios.readLong()
-                val fnameLen = dios.readInt()
-                val fnameByteArr = ios.readNBytes(fnameLen)
-                val fname = String(fnameByteArr)
 
-                val md5Len = dios.readInt()
-                val md5ByteArr = ios.readNBytes(md5Len)
-                val md5 = String(md5ByteArr)
+                val msg = FSFileMetaDataMessage()
 
-                val destination = repoDir.resolve(File(fname))
-                val metaData = FSFileMetaData(fname, fsize, 0L, md5, destination)
+                val nBytes: Int = dios.readInt()
+                val byteBuffer = ByteBuffer.allocate(nBytes)
+                byteBuffer.putInt(nBytes)
+                while (byteBuffer.hasRemaining()) {
+                    byteBuffer.put(dios.readByte())
+                }
 
+                msg.unmarshall(byteBuffer)
+
+                val metaData = msg.toFileMetaData()
                 downloadListener?.onGetMetaData(metaData)
 
-                val fos = FileOutputStream(repoDir.resolve(File(fname)))
+                val destination = repoDir.resolve(File(metaData.name))
+
+                val fos = FileOutputStream(destination)
 
                 fos.use { ios.copyTo(it) }
 
@@ -71,20 +76,21 @@ class FSFileTransfer(
     fun uploadFile(path: String): Boolean {
         val file = repoDir.resolve(File(path))
         var fileUploadThread = Thread {
+            val metaData = FSFileMetaData()
+
             val fsocket = Socket(remoteAddress, remotePort)
-            val fsize = file.length()
-            val fname = file.name
-            val fnameByteBuffer = fname.toByteArray()
-            val md5 = FSFileHash.md5(file)
-            val md5ByteBuffer = md5.toByteArray()
+
+            metaData.fileSize = file.length()
+            metaData.name = file.name
+            metaData.md5 = FSFileHash.md5(file)
 
             val ous = fsocket.getOutputStream()
             val dous = DataOutputStream(ous)
-            dous.writeLong(fsize)
-            dous.writeInt(fnameByteBuffer.size)
-            dous.write(fnameByteBuffer)
-            dous.writeInt(md5ByteBuffer.size)
-            dous.write(md5ByteBuffer)
+
+            val metaDataMsg = FSFileMetaDataMessage(metaData)
+            val msgBuffer = metaDataMsg.marshall()
+            dous.write(msgBuffer!!.array())
+            dous.flush()
 
             val fios = file.inputStream()
 

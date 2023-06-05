@@ -6,8 +6,8 @@ import java.nio.ByteBuffer
 import message.FSVarLenStringListField
 
 class FSFileMetaDataMessage(
-    var name: String,
-    var fileSize: Long,
+    var name: String = "",
+    var fileSize: Long = 0L,
     var timeStamp: Long = 0L,
     var md5: String = "",
     var path: File? = null,
