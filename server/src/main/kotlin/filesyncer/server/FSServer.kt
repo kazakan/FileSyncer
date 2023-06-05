@@ -1,5 +1,6 @@
 package filesyncer.server
 
+import filesyncer.common.FSLogicalClock
 import filesyncer.common.FSUser
 import filesyncer.common.FSUserManager
 import java.io.DataInputStream
@@ -16,13 +17,15 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
     var running = false
     var repoDir = rootPath.resolve(File("repo"))
 
+    var logicalClock = FSLogicalClock()
+
     // main loop accepts connection from client
     var mainloopThread = Thread {
         val ss = ServerSocket(port)
         running = true
         while (running) {
             val socket = ss.accept()
-            val worker = FSServerSideSession(socket, userManager, repoDir, verbose)
+            val worker = FSServerSideSession(socket, userManager, repoDir, logicalClock, verbose)
             if (verbose) {
                 println(
                     "User tried make connection. IP : ${socket.inetAddress.hostAddress}, PORT : ${socket.port}"

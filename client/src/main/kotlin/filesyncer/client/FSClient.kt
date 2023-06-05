@@ -1,9 +1,6 @@
 package filesyncer.client
 
-import filesyncer.common.FSEventConnWorker
-import filesyncer.common.FSEventMessageHandler
-import filesyncer.common.FSRequestFsm
-import filesyncer.common.FileWatcher
+import filesyncer.common.*
 import java.io.DataOutputStream
 import java.io.File
 import java.net.Socket
@@ -31,6 +28,7 @@ class Client(var localRepoDir: File) :
     private var waitingLoginRequest = FSRequestFsm()
     private var waitingRegisterRequest = FSRequestFsm()
     private var waitingListFolderRequest = FSRequestFsm()
+    private var waitingSyncRequest = FSRequestFsm()
 
     private var _id = ""
     private var _passwd = ""
@@ -39,6 +37,8 @@ class Client(var localRepoDir: File) :
     private val _reportMsgQueue = LinkedBlockingQueue<String>()
 
     private val _localRepoWatcher = FileWatcher(localRepoDir.toPath())
+
+    private val logicalClock = FSLogicalClock()
 
     init {
         _localRepoWatcher.fileChangedListener = this
@@ -105,6 +105,11 @@ class Client(var localRepoDir: File) :
                 waitingListFolderRequest.grant()
                 _cloudFileLists = msg.fileListField.strs.toList()
             }
+            EventType.SYNC -> {
+                val serverClockValue = msg.extraStrField.str.toLong()
+                logicalClock.sync(serverClockValue)
+                waitingSyncRequest.grant()
+            }
             else -> {
                 // TODO("Raise error or ..")
             }
@@ -150,6 +155,7 @@ class Client(var localRepoDir: File) :
             _id = id
             _passwd = password
             waitingLoginRequest.reset()
+            syncLogicalClock()
             return true
         }
 
@@ -262,5 +268,19 @@ class Client(var localRepoDir: File) :
         } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
             // TODO : implement
         }
+    }
+
+    fun syncLogicalClock() {
+        logicalClock.get()
+        try {
+            runner!!.putMsgToSendQueue(
+                FSEventMessage(EventType.SYNC, "", "", "${logicalClock.time}")
+            )
+        } catch (e: Exception) {
+            return
+        }
+
+        waitingSyncRequest.wait()
+        waitingSyncRequest.reset()
     }
 }

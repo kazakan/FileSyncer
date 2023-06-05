@@ -11,6 +11,7 @@ class FSServerSideSession(
     socket: Socket,
     val userManager: FSUserManager,
     val repoDir: File,
+    val clock: FSLogicalClock,
     verbose: Boolean = false
 ) : FSSession(socket, verbose) {
 
@@ -94,6 +95,13 @@ class FSServerSideSession(
                                     }
                                 )
                             }
+                        }
+                        EventType.SYNC -> {
+                            val clientTime = msg.extraStrField.str.toLong()
+                            clock.sync(clientTime)
+                            connWorker.putMsgToSendQueue(
+                                FSEventMessage(EventType.SYNC, "", "", "${clock.get()}")
+                            )
                         }
                         else -> {
                             // TODO("Do nothing.")
