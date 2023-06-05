@@ -291,9 +291,7 @@ class Client(var localRepoDir: File) :
     fun syncLogicalClock() {
         logicalClock.get()
         try {
-            runner!!.putMsgToSendQueue(
-                FSEventMessage(EventType.SYNC, "", "", "${logicalClock.time}")
-            )
+            runner!!.putMsgToSendQueue(FSEventMessage(EventType.SYNC, "${logicalClock.time}"))
         } catch (e: Exception) {
             return
         }
