@@ -15,6 +15,18 @@ class FSFileMetaDataMessage(
     var shared: List<String> = emptyList()
 ) : FSMessage() {
 
+    constructor(
+        metaData: FSFileMetaData
+    ) : this(
+        metaData.name,
+        metaData.fileSize,
+        metaData.timeStamp,
+        metaData.md5,
+        metaData.path,
+        metaData.owner,
+        metaData.shared
+    )
+
     var strListField = FSVarLenStringListField(name, md5, owner, *shared.toTypedArray())
 
     override fun marshallBody() {
