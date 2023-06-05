@@ -66,7 +66,7 @@ class Client(var localRepoDir: File) :
     }
 
     override fun handleMessage(msg: FSEventMessage) {
-        println("client code = ${msg.mEventcode}, id: ${msg.userIdField.str}")
+        println("client code = ${msg.mEventcode}, id: ${msg.messageField.strs[0]}")
         when (msg.mEventcode) {
             EventType.NONE -> {
                 // do nothing
@@ -83,13 +83,13 @@ class Client(var localRepoDir: File) :
             }
             EventType.LOGOUT -> {}
             EventType.BROADCAST_CONNECTED -> {
-                _reportMsgQueue.put("${msg.userIdField.str} connected.")
+                _reportMsgQueue.put("${msg.messageField.strs[0]} connected.")
             }
             EventType.BROADCAST_DISCONNECTED -> {
-                _reportMsgQueue.put("${msg.userIdField.str} disconnected.")
+                _reportMsgQueue.put("${msg.messageField.strs[0]} disconnected.")
             }
             EventType.UPLOAD_DONE -> {
-                _reportMsgQueue.put("${msg.extraStrField.str} updated to server.")
+                _reportMsgQueue.put("${msg.messageField.strs[2]} updated to server.")
             }
             EventType.DOWNLOAD_DONE -> {}
             EventType.UPLOAD_REQUEST -> {}
@@ -103,12 +103,30 @@ class Client(var localRepoDir: File) :
             }
             EventType.LISTFOLDER_RESPONSE -> {
                 waitingListFolderRequest.grant()
-                _cloudFileLists = msg.fileListField.strs.toList()
+                _cloudFileLists = msg.messageField.strs.toList()
             }
             EventType.SYNC -> {
-                val serverClockValue = msg.extraStrField.str.toLong()
+                val serverClockValue = msg.messageField.strs[0].toLong()
                 logicalClock.sync(serverClockValue)
                 waitingSyncRequest.grant()
+            }
+            EventType.FILE_CREATE -> {
+                // TODO : download from server
+            }
+            EventType.FILE_DELETE -> {
+                // TODO : remove file in client
+                val fileName = msg.messageField.strs[0]
+            }
+            EventType.FILE_MODIFY -> {
+                val fileName = msg.messageField.strs[0]
+                val cloudMd5 = msg.messageField.strs[1]
+
+                val localFilePath = this.localRepoDir.resolve(fileName)
+                val localMd5 = FSFileHash.md5(localFilePath)
+
+                if (localMd5 != cloudMd5) {
+                    // TODO : download from server
+                }
             }
             else -> {
                 // TODO("Raise error or ..")
@@ -149,7 +167,7 @@ class Client(var localRepoDir: File) :
             return false
         }
 
-        waitingLoginRequest.wait()
+        waitingLoginRequest.waitLock()
 
         if (waitingLoginRequest.state == FSRequestFsm.STATE.GRANTED) {
             _id = id
@@ -179,7 +197,7 @@ class Client(var localRepoDir: File) :
             return false
         }
 
-        waitingRegisterRequest.wait()
+        waitingRegisterRequest.waitLock()
 
         if (waitingRegisterRequest.state == FSRequestFsm.STATE.GRANTED) {
             _id = id
@@ -201,7 +219,7 @@ class Client(var localRepoDir: File) :
             return emptyList()
         }
 
-        waitingListFolderRequest.wait()
+        waitingListFolderRequest.waitLock()
         waitingListFolderRequest.reset()
 
         val cloudFiles = _cloudFileLists
@@ -280,7 +298,7 @@ class Client(var localRepoDir: File) :
             return
         }
 
-        waitingSyncRequest.wait()
+        waitingSyncRequest.waitLock()
         waitingSyncRequest.reset()
     }
 }

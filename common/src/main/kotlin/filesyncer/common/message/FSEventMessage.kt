@@ -3,12 +3,7 @@ package message
 import filesyncer.common.message.FSMessage
 import java.nio.ByteBuffer
 
-class FSEventMessage(
-    eventCode: Int = EventType.NONE,
-    userIdStr: String = "",
-    userPasswordStr: String = "",
-    extraStr: String = ""
-) : FSMessage() {
+class FSEventMessage(eventCode: Int = EventType.NONE, vararg messages: String) : FSMessage() {
 
     object EventType {
         const val NONE: Int = 0 // empty messsage
@@ -40,148 +35,25 @@ class FSEventMessage(
 
     var mEventcode = eventCode
 
-    var userIdField = FSVariableLenStringField(userIdStr)
-    var userPasswordField = FSVariableLenStringField(userPasswordStr)
-    var extraStrField = FSVariableLenStringField(extraStr)
-    var fileListField = FSVarLenStringListField()
+    var messageField = FSVarLenStringListField(messages)
 
     override fun marshallBody() {
         mBytebuffer!!.putInt(mEventcode)
 
-        when (mEventcode) {
-            EventType.NONE -> {
-                // do nothing
-            }
-            EventType.ASK_ALIVE -> {}
-            EventType.ANSWER_ALIVE -> {}
-            EventType.LOGIN_REQUEST -> {
-                userIdField.marshall(mBytebuffer!!)
-                userPasswordField.marshall(mBytebuffer!!)
-            }
-            EventType.LOGIN_GRANTED -> {}
-            EventType.LOGIN_REJECTED -> {}
-            EventType.LOGOUT -> {
-                userIdField.marshall(mBytebuffer!!)
-                userPasswordField.marshall(mBytebuffer!!)
-            }
-            EventType.BROADCAST_CONNECTED,
-            EventType.BROADCAST_DISCONNECTED -> {
-                userIdField.marshall(mBytebuffer!!)
-            }
-            EventType.UPLOAD_DONE -> {
-                extraStrField.marshall(mBytebuffer!!)
-            }
-            EventType.DOWNLOAD_DONE -> {}
-            EventType.UPLOAD_REQUEST -> {
-                extraStrField.marshall(mBytebuffer!!) // file name!
-            }
-            EventType.DOWNLOAD_REQUEST -> {}
-            EventType.REGISTER_REQUEST -> {
-                userIdField.marshall(mBytebuffer!!)
-                userPasswordField.marshall(mBytebuffer!!)
-            }
-            EventType.LISTFOLDER_RESPONSE -> {
-                fileListField.marshall(mBytebuffer!!)
-            }
-            EventType.SYNC -> {
-                extraStrField.marshall(mBytebuffer!!) // logical clock value
-            }
-            else -> {
-                // TODO("Raise error or ..")
-            }
-        }
+        messageField.marshall(mBytebuffer!!)
     }
 
     override fun unmarshallBody(byteBuffer: ByteBuffer) {
         this.mEventcode = byteBuffer.getInt()
 
-        when (mEventcode) {
-            EventType.NONE -> {
-                // do nothing
-            }
-            EventType.ASK_ALIVE -> {}
-            EventType.ANSWER_ALIVE -> {}
-            EventType.LOGIN_REQUEST -> {
-                userIdField.unmarshall(byteBuffer)
-                userPasswordField.unmarshall(byteBuffer)
-            }
-            EventType.LOGIN_GRANTED -> {}
-            EventType.LOGIN_REJECTED -> {}
-            EventType.LOGOUT -> {
-                userIdField.unmarshall(byteBuffer)
-                userPasswordField.unmarshall(byteBuffer)
-            }
-            EventType.BROADCAST_CONNECTED,
-            EventType.BROADCAST_DISCONNECTED -> {
-                userIdField.unmarshall(byteBuffer)
-            }
-            EventType.UPLOAD_DONE -> {
-                extraStrField.unmarshall(byteBuffer)
-            }
-            EventType.DOWNLOAD_DONE -> {}
-            EventType.UPLOAD_REQUEST -> {
-                extraStrField.unmarshall(byteBuffer)
-            }
-            EventType.DOWNLOAD_REQUEST -> {}
-            EventType.REGISTER_REQUEST -> {
-                userIdField.unmarshall(byteBuffer)
-                userPasswordField.unmarshall(byteBuffer)
-            }
-            EventType.LISTFOLDER_RESPONSE -> {
-                fileListField.unmarshall(byteBuffer)
-            }
-            EventType.SYNC -> {
-                extraStrField.unmarshall(byteBuffer) // logical clock value
-            }
-            else -> {
-                // TODO("Raise error or ..")
-            }
-        }
+        messageField.unmarshall(byteBuffer)
     }
 
     override fun getByteNums(): Int {
         var ret = super.getByteNums()
         ret += Int.SIZE_BYTES // mEventCode
 
-        when (mEventcode) {
-            EventType.NONE -> {
-                // do nothing
-            }
-            EventType.ASK_ALIVE -> {}
-            EventType.ANSWER_ALIVE -> {}
-            EventType.LOGIN_REQUEST -> {
-                ret += userIdField.getByteNums()
-                ret += userPasswordField.getByteNums()
-            }
-            EventType.LOGIN_GRANTED -> {}
-            EventType.LOGIN_REJECTED -> {}
-            EventType.LOGOUT -> {
-                ret += userIdField.getByteNums()
-                ret += userPasswordField.getByteNums()
-            }
-            EventType.BROADCAST_CONNECTED,
-            EventType.BROADCAST_DISCONNECTED -> {
-                ret += userIdField.getByteNums()
-            }
-            EventType.UPLOAD_DONE -> {
-                ret += extraStrField.getByteNums()
-            }
-            EventType.DOWNLOAD_DONE -> {}
-            EventType.UPLOAD_REQUEST -> {
-                ret += extraStrField.getByteNums()
-            }
-            EventType.DOWNLOAD_REQUEST -> {}
-            EventType.REGISTER_REQUEST -> {
-                ret += userIdField.getByteNums()
-                ret += userPasswordField.getByteNums()
-            }
-            EventType.LISTFOLDER_RESPONSE -> {
-                ret += fileListField.getByteNums()
-            }
-            EventType.SYNC -> {
-                ret += extraStrField.getByteNums() // logical clock value
-            }
-        }
+        ret += messageField.getByteNums()
 
         return ret
     }

@@ -19,9 +19,7 @@ class FSEventMessageTest {
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
         assertEquals(msg.mBytesNums, reconstructedMsg.mBytesNums)
-        assertEquals(msg.userIdField.str, reconstructedMsg.userIdField.str)
-        assertEquals(msg.userPasswordField.str, reconstructedMsg.userPasswordField.str)
-        assertEquals(msg.extraStrField.str, reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
 
         // With MESSAGE
         msg = FSEventMessage(EventType.LOGIN_REQUEST, "ididid", "passwspassws")
@@ -33,9 +31,7 @@ class FSEventMessageTest {
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
         assertEquals(msg.mBytesNums, reconstructedMsg.mBytesNums)
-        assertEquals(msg.userIdField.str, reconstructedMsg.userIdField.str)
-        assertEquals(msg.userPasswordField.str, reconstructedMsg.userPasswordField.str)
-        assertEquals(msg.extraStrField.str, reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
@@ -48,10 +44,7 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals("", reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
@@ -64,9 +57,7 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals(msg.userIdField.str, reconstructedMsg.userIdField.str)
-        assertEquals(msg.userPasswordField.str, reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
@@ -79,9 +70,7 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals("", reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
@@ -94,9 +83,7 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals("", reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
@@ -109,9 +96,7 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals(msg.userIdField.str, reconstructedMsg.userIdField.str)
-        assertEquals(msg.userPasswordField.str, reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
@@ -124,9 +109,7 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals(msg.userIdField.str, reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
@@ -139,9 +122,7 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals(msg.userIdField.str, reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
@@ -154,15 +135,13 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals("", reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-        assertEquals(msg.extraStrField.str, reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
     @Test
     fun testListFolderRequest() {
         val list = arrayListOf("aaa", "bbb", "ccc")
         val msg = FSEventMessage(EventType.LISTFOLDER_REQUEST, "ididid", "passwspassws")
-        msg.fileListField = FSVarLenStringListField(list)
+        msg.messageField = FSVarLenStringListField(list)
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -170,17 +149,14 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals("", reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
-        assertEquals(emptyList<String>(), reconstructedMsg.fileListField.strs)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
     fun testListFolderResponse() {
         val list = arrayListOf("aaa", "bbb", "ccc")
         val msg = FSEventMessage(EventType.LISTFOLDER_RESPONSE, "ididid", "passwspassws")
-        msg.fileListField = FSVarLenStringListField(list)
+        msg.messageField = FSVarLenStringListField(list)
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -188,10 +164,7 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals("", reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
-        assertEquals(list, reconstructedMsg.fileListField.strs)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
@@ -204,9 +177,7 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals(msg.userIdField.str, reconstructedMsg.userIdField.str)
-        assertEquals(msg.userPasswordField.str, reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
@@ -219,9 +190,7 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals("", reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
@@ -234,8 +203,6 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals("", reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 }

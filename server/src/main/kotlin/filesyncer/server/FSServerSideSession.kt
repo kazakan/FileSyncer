@@ -22,13 +22,16 @@ class FSServerSideSession(
             object : FSEventMessageHandler {
                 override fun handleMessage(msg: FSEventMessage) {
                     if (verbose)
-                        println("Got Msg with Code=${msg.mEventcode}, ID=${msg.userIdField.str}")
+                        println(
+                            "Got Msg with Code=${msg.mEventcode}, ID=${msg.messageField.strs[0]}"
+                        )
                     when (msg.mEventcode) {
                         EventType.ANSWER_ALIVE -> {}
                         EventType.LOGIN_REQUEST -> {
                             // check user and make response
-                            if (verbose) println("Got login requested by ${msg.userIdField.str}")
-                            val _user = FSUser(msg.userIdField.str, msg.userPasswordField.str)
+                            if (verbose)
+                                println("Got login requested by ${msg.messageField.strs[0]}")
+                            val _user = FSUser(msg.messageField.strs[0], msg.messageField.strs[1])
                             if (userManager.userExists(_user)) {
                                 if (
                                     userManager.addUserSession(_user, this@FSServerSideSession) ==
@@ -37,7 +40,7 @@ class FSServerSideSession(
                                     // already logged in other device
                                     if (verbose)
                                         println(
-                                            "Login requested by ${msg.userIdField.str} rejected."
+                                            "Login requested by ${msg.messageField.strs[0]} rejected."
                                         )
                                     connWorker.putMsgToSendQueue(
                                         FSEventMessage(EventType.LOGIN_REJECTED)
@@ -46,7 +49,7 @@ class FSServerSideSession(
                                     // granted
                                     if (verbose)
                                         println(
-                                            "Login requested by ${msg.userIdField.str} granted."
+                                            "Login requested by ${msg.messageField.strs[0]} granted."
                                         )
                                     user = _user
                                     state = State.LOGGED_IN
@@ -57,7 +60,9 @@ class FSServerSideSession(
                             } else {
                                 // rejected
                                 if (verbose)
-                                    println("Login requested by ${msg.userIdField.str} rejected.")
+                                    println(
+                                        "Login requested by ${msg.messageField.strs[0]} rejected."
+                                    )
                                 connWorker.putMsgToSendQueue(
                                     FSEventMessage(EventType.LOGIN_REJECTED)
                                 )
@@ -65,24 +70,26 @@ class FSServerSideSession(
                         }
                         EventType.LOGOUT -> {
                             // logout and broadcast msg
-                            val user = FSUser(msg.userIdField.str, msg.userPasswordField.str)
-                            if (verbose) println("User ${msg.userIdField.str} logged out.")
+                            val user = FSUser(msg.messageField.strs[0], msg.messageField.strs[1])
+                            if (verbose) println("User ${msg.messageField.strs[0]} logged out.")
                             // userManager.removeUserSession(user)
                         }
                         EventType.REGISTER_REQUEST -> {
-                            val user = FSUser(msg.userIdField.str, msg.userPasswordField.str)
+                            val user = FSUser(msg.messageField.strs[0], msg.messageField.strs[1])
                             val result = userManager.registerUser(user)
                             if (result) {
                                 connWorker.putMsgToSendQueue(
                                     FSEventMessage(EventType.REGISTER_GRANTED)
                                 )
-                                if (verbose) println("User ${msg.userIdField.str} registered.")
+                                if (verbose) println("User ${msg.messageField.strs[0]} registered.")
                             } else {
                                 connWorker.putMsgToSendQueue(
                                     FSEventMessage(EventType.REGISTER_REJECTED)
                                 )
                                 if (verbose)
-                                    println("Register of User ${msg.userIdField.str} rejected.")
+                                    println(
+                                        "Register of User ${msg.messageField.strs[0]} rejected."
+                                    )
                             }
                         }
                         EventType.LISTFOLDER_REQUEST -> {
@@ -91,16 +98,16 @@ class FSServerSideSession(
                             if (names != null) {
                                 connWorker.putMsgToSendQueue(
                                     FSEventMessage(EventType.LISTFOLDER_RESPONSE).apply {
-                                        this.fileListField = FSVarLenStringListField(names)
+                                        this.messageField = FSVarLenStringListField(names)
                                     }
                                 )
                             }
                         }
                         EventType.SYNC -> {
-                            val clientTime = msg.extraStrField.str.toLong()
+                            val clientTime = msg.messageField.strs[0].toLong()
                             clock.sync(clientTime)
                             connWorker.putMsgToSendQueue(
-                                FSEventMessage(EventType.SYNC, "", "", "${clock.get()}")
+                                FSEventMessage(EventType.SYNC, "${clock.get()}")
                             )
                         }
                         else -> {
