@@ -35,7 +35,7 @@ class FSEventMessage(eventCode: Int = EventType.NONE, vararg messages: String) :
 
     var mEventcode = eventCode
 
-    var messageField = FSVarLenStringListField(messages)
+    var messageField = FSVarLenStringListField(*messages)
 
     override fun marshallBody() {
         mBytebuffer!!.putInt(mEventcode)
