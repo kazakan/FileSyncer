@@ -2,6 +2,7 @@ package filesyncer.client
 
 import filesyncer.common.FSEventConnWorker
 import filesyncer.common.FSEventMessageHandler
+import filesyncer.common.FSRequestFsm
 import filesyncer.common.FileWatcher
 import java.io.DataOutputStream
 import java.io.File
@@ -18,13 +19,6 @@ enum class FSCLIENT_STATE {
     LOGGEDIN
 }
 
-enum class REQUEST_STATE {
-    NOT_WAITING,
-    WAITING,
-    GRANTED,
-    REJECTED
-}
-
 class Client(var localRepoDir: File) :
     FSEventMessageHandler, FSClientFrontInterface, FileWatcher.OnFileChangedListener {
     var state = FSCLIENT_STATE.DISCONNECTED
@@ -34,9 +28,9 @@ class Client(var localRepoDir: File) :
     var address = ""
     var port = 500
 
-    private var waitingLoginRequest = REQUEST_STATE.NOT_WAITING
-    private var waitingRegisterRequest = REQUEST_STATE.NOT_WAITING
-    private var waitingListFolderRequest = REQUEST_STATE.NOT_WAITING
+    private var waitingLoginRequest = FSRequestFsm()
+    private var waitingRegisterRequest = FSRequestFsm()
+    private var waitingListFolderRequest = FSRequestFsm()
 
     private var _id = ""
     private var _passwd = ""
@@ -81,11 +75,11 @@ class Client(var localRepoDir: File) :
             EventType.ANSWER_ALIVE -> {}
             EventType.LOGIN_REQUEST -> {}
             EventType.LOGIN_GRANTED -> {
-                waitingLoginRequest = REQUEST_STATE.GRANTED
+                waitingLoginRequest.grant()
                 state = FSCLIENT_STATE.LOGGEDIN
             }
             EventType.LOGIN_REJECTED -> {
-                waitingLoginRequest = REQUEST_STATE.REJECTED
+                waitingLoginRequest.reject()
             }
             EventType.LOGOUT -> {}
             EventType.BROADCAST_CONNECTED -> {
@@ -102,13 +96,13 @@ class Client(var localRepoDir: File) :
             EventType.DOWNLOAD_REQUEST -> {}
             EventType.REGISTER_REQUEST -> {}
             EventType.REGISTER_GRANTED -> {
-                waitingRegisterRequest = REQUEST_STATE.GRANTED
+                waitingRegisterRequest.grant()
             }
             EventType.REGISTER_REJECTED -> {
-                waitingRegisterRequest = REQUEST_STATE.REJECTED
+                waitingRegisterRequest.reject()
             }
             EventType.LISTFOLDER_RESPONSE -> {
-                waitingListFolderRequest = REQUEST_STATE.GRANTED
+                waitingListFolderRequest.grant()
                 _cloudFileLists = msg.fileListField.strs.toList()
             }
             else -> {
@@ -143,29 +137,23 @@ class Client(var localRepoDir: File) :
         }
 
         try {
-            waitingLoginRequest = REQUEST_STATE.WAITING
+
             runner!!.putMsgToSendQueue(FSEventMessage(EventType.LOGIN_REQUEST, id, password))
         } catch (e: Exception) {
-            waitingLoginRequest = REQUEST_STATE.NOT_WAITING
+
             return false
         }
 
-        while (waitingLoginRequest == REQUEST_STATE.WAITING) {
-            Thread.sleep(200L)
-        }
+        waitingLoginRequest.wait()
 
-        if (waitingLoginRequest == REQUEST_STATE.GRANTED) {
-            waitingLoginRequest = REQUEST_STATE.NOT_WAITING
+        if (waitingLoginRequest.state == FSRequestFsm.STATE.GRANTED) {
             _id = id
             _passwd = password
+            waitingLoginRequest.reset()
             return true
-        } else if (waitingLoginRequest == REQUEST_STATE.REJECTED) {
-
-            waitingLoginRequest = REQUEST_STATE.NOT_WAITING
-            return false
         }
 
-        waitingLoginRequest = REQUEST_STATE.NOT_WAITING
+        waitingLoginRequest.reset()
         return false
     }
 
@@ -180,28 +168,20 @@ class Client(var localRepoDir: File) :
         }
 
         try {
-            waitingRegisterRequest = REQUEST_STATE.WAITING
             runner!!.putMsgToSendQueue(FSEventMessage(EventType.REGISTER_REQUEST, id, password))
         } catch (e: Exception) {
-            waitingRegisterRequest = REQUEST_STATE.NOT_WAITING
             return false
         }
 
-        while (waitingRegisterRequest == REQUEST_STATE.WAITING) {
-            Thread.sleep(200L)
-        }
+        waitingRegisterRequest.wait()
 
-        if (waitingRegisterRequest == REQUEST_STATE.GRANTED) {
-
-            waitingRegisterRequest = REQUEST_STATE.NOT_WAITING
+        if (waitingRegisterRequest.state == FSRequestFsm.STATE.GRANTED) {
             _id = id
+            waitingRegisterRequest.reset()
             return true
-        } else if (waitingRegisterRequest == REQUEST_STATE.REJECTED) {
-
-            waitingRegisterRequest = REQUEST_STATE.NOT_WAITING
-            return false
         }
-        waitingRegisterRequest = REQUEST_STATE.NOT_WAITING
+
+        waitingRegisterRequest.reset()
         return false
     }
 
@@ -210,17 +190,13 @@ class Client(var localRepoDir: File) :
             this.localRepoDir.listFiles()?.filter { it.isFile }?.map { it.name } ?: emptyList()
 
         try {
-            waitingListFolderRequest = REQUEST_STATE.WAITING
             runner!!.putMsgToSendQueue(FSEventMessage(EventType.LISTFOLDER_REQUEST))
         } catch (e: Exception) {
-            waitingListFolderRequest = REQUEST_STATE.NOT_WAITING
             return emptyList()
         }
 
-        while (waitingListFolderRequest == REQUEST_STATE.WAITING) {
-            Thread.sleep(200L)
-        }
-        waitingListFolderRequest = REQUEST_STATE.NOT_WAITING
+        waitingListFolderRequest.wait()
+        waitingListFolderRequest.reset()
 
         val cloudFiles = _cloudFileLists
 
