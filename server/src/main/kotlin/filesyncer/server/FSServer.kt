@@ -57,7 +57,7 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
                 if (verbose) {
                     println("Done download file")
                 }
-                broadcast(FSEventMessage(EventType.UPLOAD_DONE, extraStr = fname))
+                broadcast(FSEventMessage(EventType.UPLOAD_DONE, fname))
             }
 
             fileDownloadWorkerThread.start()
@@ -102,7 +102,7 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
 
     // broadcast message to all alive event connections
     override fun broadcast(msg: FSEventMessage) {
-        println("Broadcast msg code=${msg.mEventcode}, ID=${msg.userIdField.str}")
+        println("Broadcast msg code=${msg.mEventcode}, ID=${msg.messageField.strs[0]}")
         for (entry in userManager.sessions) {
             if (!entry.value.worker.isClosed()) entry.value.worker.putMsgToSendQueue(msg)
         }
@@ -110,13 +110,11 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
 
     // when a user's session is removed, alert it to all clients.
     override fun onUserSessionRemoved(user: FSUser) {
-        this@FSServer.broadcast(
-            FSEventMessage(EventType.BROADCAST_DISCONNECTED, userIdStr = user.id)
-        )
+        this@FSServer.broadcast(FSEventMessage(EventType.BROADCAST_DISCONNECTED, user.id))
     }
 
     // when a user's session is added, alert it to all clients.
     override fun onUserSessionAdded(user: FSUser) {
-        this@FSServer.broadcast(FSEventMessage(EventType.BROADCAST_CONNECTED, userIdStr = user.id))
+        this@FSServer.broadcast(FSEventMessage(EventType.BROADCAST_CONNECTED, user.id))
     }
 }

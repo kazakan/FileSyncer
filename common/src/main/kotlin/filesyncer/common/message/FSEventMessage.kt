@@ -18,7 +18,7 @@ class FSEventMessage(eventCode: Int = EventType.NONE, vararg messages: String) :
             8 // broadcast message for notify other user disconnected
         const val UPLOAD_DONE: Int = 9 // Done upload
         const val DOWNLOAD_DONE: Int = 10 // Down download
-        const val UPLOAD_REQUEST: Int = 11 // request upload
+        const val UPLOAD_REQUEST: Int = 11 // request upload (filename, md5)
         const val UPLOAD_RESPONSE: Int = 18 // response for UPLOAD_REQUEST
         const val DOWNLOAD_REQUEST: Int = 12 // request download
         const val LISTFOLDER_REQUEST: Int = 13 // request list of files
@@ -27,9 +27,9 @@ class FSEventMessage(eventCode: Int = EventType.NONE, vararg messages: String) :
         const val REGISTER_GRANTED: Int = 16 // response for REGISTER_REQUEST
         const val REGISTER_REJECTED: Int = 17
 
-        const val FILE_CREATE: Int = 15 // Tell file created
-        const val FILE_DELETE: Int = 16 // Tell file deleted
-        const val FILE_MODIFY: Int = 17 // Tell file modified
+        const val FILE_CREATE: Int = 15 // Tell file created, (filename, md5)
+        const val FILE_DELETE: Int = 16 // Tell file deleted, (filename)
+        const val FILE_MODIFY: Int = 17 // Tell file modified (filename, md5)
         const val SYNC: Int = 18 // Sync logical clock
     }
 

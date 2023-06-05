@@ -1,7 +1,8 @@
 package filesyncer.client
 
 import filesyncer.common.*
-import java.io.DataOutputStream
+import filesyncer.common.file.FSFileMetaData
+import filesyncer.common.file.FSFileTransfer
 import java.io.File
 import java.net.Socket
 import java.nio.file.StandardWatchEventKinds
@@ -39,6 +40,21 @@ class Client(var localRepoDir: File) :
     private val _localRepoWatcher = FileWatcher(localRepoDir.toPath())
 
     private val logicalClock = FSLogicalClock()
+    private var fileTransfer: FSFileTransfer? = null
+    private var downloadListener =
+        object : FSFileTransfer.OnDownloadListener {
+            override fun onStart() {
+                TODO("Not yet implemented")
+            }
+
+            override fun onGetMetaData(metaData: FSFileMetaData) {
+                TODO("Not yet implemented")
+            }
+
+            override fun onFinish(metaData: FSFileMetaData) {
+                TODO("Not yet implemented")
+            }
+        }
 
     init {
         _localRepoWatcher.fileChangedListener = this
@@ -112,10 +128,14 @@ class Client(var localRepoDir: File) :
             }
             EventType.FILE_CREATE -> {
                 // TODO : download from server
+                runner!!.putMsgToSendQueue(
+                    FSEventMessage(EventType.DOWNLOAD_REQUEST, msg.messageField.strs[0])
+                )
             }
             EventType.FILE_DELETE -> {
                 // TODO : remove file in client
                 val fileName = msg.messageField.strs[0]
+                localRepoDir.resolve(fileName).delete()
             }
             EventType.FILE_MODIFY -> {
                 val fileName = msg.messageField.strs[0]
@@ -126,6 +146,9 @@ class Client(var localRepoDir: File) :
 
                 if (localMd5 != cloudMd5) {
                     // TODO : download from server
+                    runner!!.putMsgToSendQueue(
+                        FSEventMessage(EventType.DOWNLOAD_REQUEST, msg.messageField.strs[0])
+                    )
                 }
             }
             else -> {
@@ -174,6 +197,9 @@ class Client(var localRepoDir: File) :
             _passwd = password
             waitingLoginRequest.reset()
             syncLogicalClock()
+            fileTransfer = FSFileTransfer(localRepoDir, 7777, address, 7777, true)
+            fileTransfer!!.downloadListener = downloadListener
+            fileTransfer!!.startFileServer()
             return true
         }
 
@@ -240,28 +266,7 @@ class Client(var localRepoDir: File) :
     }
 
     override fun uploadFile(path: String): Boolean {
-        val file = this.localRepoDir.resolve(File(path))
-        var fileUploadThread = Thread {
-            val fsocket = Socket(address, 7777)
-            val fsize = file.length()
-            val fname = file.name
-            val fnameByteBuffer = fname.toByteArray()
-
-            val ous = fsocket.getOutputStream()
-            val dous = DataOutputStream(ous)
-            dous.writeLong(fsize)
-            dous.writeInt(fnameByteBuffer.size)
-            dous.write(fnameByteBuffer)
-
-            val fios = file.inputStream()
-
-            ous.use { fios.copyTo(ous) }
-
-            fsocket.close()
-        }
-
-        fileUploadThread.start()
-        fileUploadThread.join()
+        fileTransfer!!.uploadFile(path)
 
         return true
     }
@@ -269,6 +274,8 @@ class Client(var localRepoDir: File) :
     override fun disconnect() {
         runner?.putMsgToSendQueue(FSEventMessage(EventType.LOGOUT, _id, _passwd))
         runner?.stop()
+        fileTransfer!!.stopFileServer()
+        fileTransfer = null
 
         _localRepoWatcher.stop()
     }
@@ -278,13 +285,16 @@ class Client(var localRepoDir: File) :
     }
 
     override fun onFileChanged(file: File, kind: WatchEvent.Kind<out Any>) {
-        // TODO : implement
+        val name = file.name
         if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
-            // TODO : implement
+            // TODO : upload
+            fileTransfer!!.uploadFile(name)
         } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
-            // TODO : implement
+            // TODO : tell delete
+            runner!!.putMsgToSendQueue(FSEventMessage(EventType.FILE_DELETE, name))
         } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
-            // TODO : implement
+            // TODO : upload
+            fileTransfer!!.uploadFile(name)
         }
     }
 
