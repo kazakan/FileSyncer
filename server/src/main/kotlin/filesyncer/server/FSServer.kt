@@ -3,9 +3,8 @@ package filesyncer.server
 import filesyncer.common.FSLogicalClock
 import filesyncer.common.FSUser
 import filesyncer.common.FSUserManager
-import java.io.DataInputStream
+import filesyncer.common.file.FSFileTransfer
 import java.io.File
-import java.io.FileOutputStream
 import java.net.ServerSocket
 import message.FSEventMessage
 import message.FSEventMessage.EventType
@@ -18,6 +17,8 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
     var repoDir = rootPath.resolve(File("repo"))
 
     var logicalClock = FSLogicalClock()
+    val fileManager = FSServerFileManager(rootPath)
+    var fileTransfer = FSFileTransfer()
 
     // main loop accepts connection from client
     var mainloopThread = Thread {
@@ -31,36 +32,6 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
                     "User tried make connection. IP : ${socket.inetAddress.hostAddress}, PORT : ${socket.port}"
                 )
             }
-        }
-    }
-
-    var fileDownloadLoopThread = Thread {
-        val fss = ServerSocket(7777)
-        while (running) {
-            val socket = fss.accept()
-            val fileDownloadWorkerThread = Thread {
-                if (verbose) {
-                    println("Start download file from ${socket.remoteSocketAddress.toString()}")
-                }
-                val ios = socket.getInputStream()
-                val dios = DataInputStream(ios)
-                val fsize = dios.readLong()
-                val fnameLen = dios.readInt()
-                val fnameByteArr = ios.readNBytes(fnameLen)
-                val fname = String(fnameByteArr)
-
-                val fos = FileOutputStream(repoDir.resolve(File(fname)))
-
-                fos.use { ios.copyTo(it) }
-
-                socket.close()
-                if (verbose) {
-                    println("Done download file")
-                }
-                broadcast(FSEventMessage(EventType.UPLOAD_DONE, fname))
-            }
-
-            fileDownloadWorkerThread.start()
         }
     }
 
@@ -91,13 +62,11 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
         }
         running = true
         mainloopThread.start()
-        fileDownloadLoopThread.start()
     }
 
     fun kill() {
         mainloopThread.interrupt()
         // removeDeadSessionThread.interrupt()
-        fileDownloadLoopThread.interrupt()
     }
 
     // broadcast message to all alive event connections

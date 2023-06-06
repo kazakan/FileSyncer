@@ -2,7 +2,7 @@ package filesyncer.common.file
 
 import java.io.File
 
-class FSFileMetaData(
+data class FSFileMetaData(
     var name: String = "",
     var fileSize: Long = 0L,
     var timeStamp: Long = 0L,
@@ -10,4 +10,4 @@ class FSFileMetaData(
     var path: File? = null,
     var owner: String = "",
     var shared: List<String> = emptyList()
-)
+) {}

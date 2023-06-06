@@ -1,7 +1,6 @@
 package filesyncer.client
 
 import filesyncer.common.*
-import filesyncer.common.file.FSFileMetaData
 import filesyncer.common.file.FSFileTransfer
 import java.io.File
 import java.net.Socket
@@ -26,6 +25,9 @@ class Client(var localRepoDir: File) :
     var address = ""
     var port = 500
 
+    val uploadPort = 7777
+    val downloadPort = 7778
+
     private var waitingLoginRequest = FSRequestFsm()
     private var waitingRegisterRequest = FSRequestFsm()
     private var waitingListFolderRequest = FSRequestFsm()
@@ -41,20 +43,6 @@ class Client(var localRepoDir: File) :
 
     private val logicalClock = FSLogicalClock()
     private var fileTransfer: FSFileTransfer? = null
-    private var downloadListener =
-        object : FSFileTransfer.OnDownloadListener {
-            override fun onStart() {
-                TODO("Not yet implemented")
-            }
-
-            override fun onGetMetaData(metaData: FSFileMetaData) {
-                TODO("Not yet implemented")
-            }
-
-            override fun onFinish(metaData: FSFileMetaData) {
-                TODO("Not yet implemented")
-            }
-        }
 
     init {
         _localRepoWatcher.fileChangedListener = this
@@ -197,9 +185,6 @@ class Client(var localRepoDir: File) :
             _passwd = password
             waitingLoginRequest.reset()
             syncLogicalClock()
-            fileTransfer = FSFileTransfer(localRepoDir, 7777, address, 7777, true)
-            fileTransfer!!.downloadListener = downloadListener
-            fileTransfer!!.startFileServer()
             return true
         }
 
@@ -266,15 +251,13 @@ class Client(var localRepoDir: File) :
     }
 
     override fun uploadFile(path: String): Boolean {
-        fileTransfer!!.uploadFile(path)
-
+        upload(path)
         return true
     }
 
     override fun disconnect() {
         runner?.putMsgToSendQueue(FSEventMessage(EventType.LOGOUT, _id, _passwd))
         runner?.stop()
-        fileTransfer!!.stopFileServer()
         fileTransfer = null
 
         _localRepoWatcher.stop()
@@ -288,13 +271,13 @@ class Client(var localRepoDir: File) :
         val name = file.name
         if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
             // TODO : upload
-            fileTransfer!!.uploadFile(name)
+            upload(name)
         } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
             // TODO : tell delete
             runner!!.putMsgToSendQueue(FSEventMessage(EventType.FILE_DELETE, name))
         } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
             // TODO : upload
-            fileTransfer!!.uploadFile(name)
+            upload(name)
         }
     }
 
@@ -308,5 +291,11 @@ class Client(var localRepoDir: File) :
 
         waitingSyncRequest.waitLock()
         waitingSyncRequest.reset()
+    }
+
+    private fun upload(fileName: String) {
+        val file = localRepoDir.resolve(fileName)
+        val socket = Socket(address, port)
+        fileTransfer!!.upload(socket, file)
     }
 }
