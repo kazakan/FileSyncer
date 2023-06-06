@@ -7,13 +7,10 @@ import java.net.Socket
 import java.nio.ByteBuffer
 
 class FSFileTransfer {
-    interface OnDownloadListener {
-        fun onStart()
-        fun onGetMetaData(metaData: FSFileMetaData)
-        fun onFinish(metaData: FSFileMetaData)
-    }
 
     fun _download(sourceStream: InputStream, destStream: OutputStream) {
+        onStartDownload()
+
         val dios = DataInputStream(sourceStream)
 
         val msg = FSFileMetaDataMessage()
@@ -28,11 +25,12 @@ class FSFileTransfer {
         msg.unmarshall(byteBuffer)
 
         val metaData = msg.toFileMetaData()
-        downloadListener?.onGetMetaData(metaData)
+
+        onReceiveMetaData(metaData)
 
         destStream.use { sourceStream.copyTo(it) }
 
-        downloadListener?.onFinish(metaData)
+        onFinishDownload(metaData)
     }
 
     fun _upload(metaData: FSFileMetaData, sourceStream: InputStream, destStream: OutputStream) {
@@ -54,9 +52,12 @@ class FSFileTransfer {
     }
 
     fun upload(socket: Socket, file: File) {
+
         val ios = file.inputStream()
         val ous = socket.getOutputStream()
         val metaData = FSFileMetaData()
+
+        onStartUpload(metaData)
 
         metaData.fileSize = file.length()
         metaData.name = file.name
@@ -65,7 +66,14 @@ class FSFileTransfer {
         _upload(metaData, ios, ous)
         socket.close()
         ios.close()
+
+        onFinishUpload(metaData)
     }
 
-    var downloadListener: OnDownloadListener? = null
+    fun onStartDownload() {}
+    fun onReceiveMetaData(metaData: FSFileMetaData) {}
+    fun onFinishDownload(metaData: FSFileMetaData) {}
+
+    fun onStartUpload(metaData: FSFileMetaData) {}
+    fun onFinishUpload(metaData: FSFileMetaData) {}
 }
