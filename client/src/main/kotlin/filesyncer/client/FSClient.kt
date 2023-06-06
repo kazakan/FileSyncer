@@ -16,8 +16,7 @@ enum class FSCLIENT_STATE {
     LOGGEDIN
 }
 
-class Client(var localRepoDir: File) :
-    FSEventMessageHandler, FSClientFrontInterface, FileWatcher.OnFileChangedListener {
+class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFileChangedListener {
     var state = FSCLIENT_STATE.DISCONNECTED
     var runner: FSEventConnWorker? = null
     var front: FSClientFront? = null
@@ -145,128 +144,6 @@ class Client(var localRepoDir: File) :
         }
     }
 
-    override fun checkConnection(address: String, port: Int): Boolean {
-        if (
-            (runner != null) &&
-                runner!!.connection.isConnected() &&
-                (this.address == address) &&
-                (this.port == port)
-        ) {
-            return true
-        }
-
-        try {
-            startConnection(address, port)
-        } catch (e: Exception) {
-            return false
-        }
-        this.address = address
-        this.port = port
-        return true
-    }
-
-    override fun requestLogin(id: String, password: String, address: String, port: Int): Boolean {
-        if (!checkConnection(address, port)) {
-            return false
-        }
-
-        try {
-
-            runner!!.putMsgToSendQueue(FSEventMessage(EventType.LOGIN_REQUEST, id, password))
-        } catch (e: Exception) {
-
-            return false
-        }
-
-        waitingLoginRequest.waitLock()
-
-        if (waitingLoginRequest.state == FSRequestFsm.STATE.GRANTED) {
-            _id = id
-            _passwd = password
-            waitingLoginRequest.reset()
-            syncLogicalClock()
-            return true
-        }
-
-        waitingLoginRequest.reset()
-        return false
-    }
-
-    override fun requestRegister(
-        id: String,
-        password: String,
-        address: String,
-        port: Int
-    ): Boolean {
-        if (!checkConnection(address, port)) {
-            return false
-        }
-
-        try {
-            runner!!.putMsgToSendQueue(FSEventMessage(EventType.REGISTER_REQUEST, id, password))
-        } catch (e: Exception) {
-            return false
-        }
-
-        waitingRegisterRequest.waitLock()
-
-        if (waitingRegisterRequest.state == FSRequestFsm.STATE.GRANTED) {
-            _id = id
-            waitingRegisterRequest.reset()
-            return true
-        }
-
-        waitingRegisterRequest.reset()
-        return false
-    }
-
-    override fun showFolder(dir: String): List<Map<String, String>> {
-        val localFiles =
-            this.localRepoDir.listFiles()?.filter { it.isFile }?.map { it.name } ?: emptyList()
-
-        try {
-            runner!!.putMsgToSendQueue(FSEventMessage(EventType.LISTFOLDER_REQUEST))
-        } catch (e: Exception) {
-            return emptyList()
-        }
-
-        waitingListFolderRequest.waitLock()
-        waitingListFolderRequest.reset()
-
-        val cloudFiles = _cloudFileLists
-
-        val lists = HashSet(localFiles + cloudFiles).toList().sorted()
-        val localSet = HashSet(localFiles)
-        val cloudSet = HashSet(cloudFiles)
-        val data =
-            lists.map {
-                val inLocal = localSet.contains(it)
-                val inCloud = cloudSet.contains(it)
-                val status =
-                    if (inLocal) if (inCloud) "Both" else "Local Only"
-                    else if (inCloud) "Cloud Only" else "ERR"
-                mapOf("name" to it, "status" to status, "type" to "file")
-            }
-        return data
-    }
-
-    override fun uploadFile(path: String): Boolean {
-        upload(path)
-        return true
-    }
-
-    override fun disconnect() {
-        runner?.putMsgToSendQueue(FSEventMessage(EventType.LOGOUT, _id, _passwd))
-        runner?.stop()
-        fileTransfer = null
-
-        _localRepoWatcher.stop()
-    }
-
-    override fun takeReportMessage(): String? {
-        return _reportMsgQueue.poll()
-    }
-
     override fun onFileChanged(file: File, kind: WatchEvent.Kind<out Any>) {
         val name = file.name
         if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
@@ -298,4 +175,140 @@ class Client(var localRepoDir: File) :
         val socket = Socket(address, port)
         fileTransfer!!.upload(socket, file)
     }
+
+    val frontInterface =
+        object : FSClientFrontInterface {
+
+            override fun checkConnection(address: String, port: Int): Boolean {
+                if (
+                    (runner != null) &&
+                        runner!!.connection.isConnected() &&
+                        (this@Client.address == address) &&
+                        (this@Client.port == port)
+                ) {
+                    return true
+                }
+
+                try {
+                    startConnection(address, port)
+                } catch (e: Exception) {
+                    return false
+                }
+                this@Client.address = address
+                this@Client.port = port
+                return true
+            }
+
+            override fun requestLogin(
+                id: String,
+                password: String,
+                address: String,
+                port: Int
+            ): Boolean {
+                if (!checkConnection(address, port)) {
+                    return false
+                }
+
+                try {
+
+                    runner!!.putMsgToSendQueue(
+                        FSEventMessage(EventType.LOGIN_REQUEST, id, password)
+                    )
+                } catch (e: Exception) {
+
+                    return false
+                }
+
+                waitingLoginRequest.waitLock()
+
+                if (waitingLoginRequest.state == FSRequestFsm.STATE.GRANTED) {
+                    _id = id
+                    _passwd = password
+                    waitingLoginRequest.reset()
+                    syncLogicalClock()
+                    return true
+                }
+
+                waitingLoginRequest.reset()
+                return false
+            }
+
+            override fun requestRegister(
+                id: String,
+                password: String,
+                address: String,
+                port: Int
+            ): Boolean {
+                if (!checkConnection(address, port)) {
+                    return false
+                }
+
+                try {
+                    runner!!.putMsgToSendQueue(
+                        FSEventMessage(EventType.REGISTER_REQUEST, id, password)
+                    )
+                } catch (e: Exception) {
+                    return false
+                }
+
+                waitingRegisterRequest.waitLock()
+
+                if (waitingRegisterRequest.state == FSRequestFsm.STATE.GRANTED) {
+                    _id = id
+                    waitingRegisterRequest.reset()
+                    return true
+                }
+
+                waitingRegisterRequest.reset()
+                return false
+            }
+
+            override fun showFolder(dir: String): List<Map<String, String>> {
+                val localFiles =
+                    this@Client.localRepoDir.listFiles()?.filter { it.isFile }?.map { it.name }
+                        ?: emptyList()
+
+                try {
+                    runner!!.putMsgToSendQueue(FSEventMessage(EventType.LISTFOLDER_REQUEST))
+                } catch (e: Exception) {
+                    return emptyList()
+                }
+
+                waitingListFolderRequest.waitLock()
+                waitingListFolderRequest.reset()
+
+                val cloudFiles = _cloudFileLists
+
+                val lists = HashSet(localFiles + cloudFiles).toList().sorted()
+                val localSet = HashSet(localFiles)
+                val cloudSet = HashSet(cloudFiles)
+                val data =
+                    lists.map {
+                        val inLocal = localSet.contains(it)
+                        val inCloud = cloudSet.contains(it)
+                        val status =
+                            if (inLocal) if (inCloud) "Both" else "Local Only"
+                            else if (inCloud) "Cloud Only" else "ERR"
+                        mapOf("name" to it, "status" to status, "type" to "file")
+                    }
+                return data
+            }
+
+            override fun uploadFile(path: String): Boolean {
+                upload(path)
+                return true
+            }
+
+            override fun disconnect() {
+                runner?.putMsgToSendQueue(FSEventMessage(EventType.LOGOUT, _id, _passwd))
+                runner?.stop()
+                fileTransfer = null
+
+                _localRepoWatcher.stop()
+            }
+
+            override fun takeReportMessage(): String? {
+                return _reportMsgQueue.poll()
+            }
+        }
 }

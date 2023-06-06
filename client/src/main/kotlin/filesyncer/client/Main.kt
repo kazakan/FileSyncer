@@ -35,7 +35,7 @@ fun main(argv: Array<String>) {
     println("Web port used by client : $webport")
 
     val client = Client(File(folder))
-    val front = FSClientWebFront(client, webport)
+    val front = FSClientWebFront(client.frontInterface, webport)
     client.front = front
     client.start()
 }
