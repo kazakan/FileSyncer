@@ -9,8 +9,13 @@ import java.net.ServerSocket
 import message.FSEventMessage
 import message.FSEventMessage.EventType
 
-class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = false) :
-    FSMessageBroadcaster<FSEventMessage>, FSUserManager.FSUserManagerListener {
+class FSServer(
+    var rootPath: File,
+    var port: Int = 5050,
+    val verbose: Boolean = false,
+    val receivePort: Int = 7777,
+    val sendPort: Int = 7778
+) : FSMessageBroadcaster<FSEventMessage>, FSUserManager.FSUserManagerListener {
 
     var userManager = FSSimpleUserManager(rootPath, verbose, this)
     var running = false
@@ -32,6 +37,51 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
                     "User tried make connection. IP : ${socket.inetAddress.hostAddress}, PORT : ${socket.port}"
                 )
             }
+        }
+    }
+
+    // client to server
+    var receiveThread = Thread {
+        val ss = ServerSocket(receivePort)
+        running = true
+        while (running) {
+            val socket = ss.accept()
+            val socketInputStream = socket.getInputStream()
+
+            val metaData = fileTransfer.receiveMetaData(socketInputStream)
+
+            val file = fileManager.getFile(metaData)
+            val fileOutputStream = file.outputStream()
+
+            fileOutputStream.use { socketInputStream.copyTo(it) }
+
+            // TODO : specify message
+            broadcast(
+                FSEventMessage(EventType.FILE_MODIFY, metaData.name, metaData.md5),
+                metaData.shared + metaData.owner
+            )
+        }
+    }
+
+    // server to client
+    var sendThread = Thread {
+        val ss = ServerSocket(sendPort)
+        running = true
+        while (running) {
+            val socket = ss.accept()
+            val socketInputStream = socket.getInputStream()
+            val socketOutputStream = socket.getOutputStream()
+
+            // get which file client wants
+            val metaData = fileTransfer.receiveMetaData(socketInputStream)
+            val newestMetaData = fileManager.getNewestMetaData(metaData) ?: metaData
+
+            val file = fileManager.getFile(newestMetaData)
+            val fileInputStream = file.inputStream()
+
+            // send
+            fileTransfer.sendMetaData(newestMetaData, socketOutputStream)
+            socketOutputStream.use { fileInputStream.copyTo(it) }
         }
     }
 
@@ -62,10 +112,14 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
         }
         running = true
         mainloopThread.start()
+        receiveThread.start()
+        sendThread.start()
     }
 
     fun kill() {
         mainloopThread.interrupt()
+        receiveThread.interrupt()
+        sendThread.interrupt()
         // removeDeadSessionThread.interrupt()
     }
 
@@ -85,5 +139,17 @@ class FSServer(var rootPath: File, var port: Int = 5050, val verbose: Boolean = 
     // when a user's session is added, alert it to all clients.
     override fun onUserSessionAdded(user: FSUser) {
         this@FSServer.broadcast(FSEventMessage(EventType.BROADCAST_CONNECTED, user.id))
+    }
+
+    override fun broadcast(msg: FSEventMessage, users: List<String>) {
+        println("Broadcast msg code=${msg.mEventcode}, ID=${msg.messageField.strs[0]}")
+        for (id in users) {
+            val fsUser = userManager.findUserById(id)
+            if (fsUser != null) {
+                if (userManager.sessions[fsUser]?.worker?.isClosed() == false) {
+                    userManager.sessions[fsUser]?.worker?.putMsgToSendQueue(msg)
+                }
+            }
+        }
     }
 }

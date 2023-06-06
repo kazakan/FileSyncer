@@ -14,7 +14,7 @@ class FSSimpleUserManager(
 ) : FSUserManager {
 
     var sessions = HashMap<FSUser, FSSession>()
-    var users = HashSet<FSUser>()
+    var users = HashMap<String, FSUser>()
     var userDataFile = repositoryRoot.resolve("FSUserData.txt")
 
     override fun initialize() {
@@ -24,7 +24,7 @@ class FSSimpleUserManager(
             userDataFile.forEachLine {
                 val tokens = it.split('\t')
                 if (tokens.size < 2) return@forEachLine // just like continue in other lang.
-                users.add(FSUser(tokens[0], tokens[1]))
+                users[tokens[0]] = FSUser(tokens[0], tokens[1])
             }
         } else {
             userDataFile.createNewFile()
@@ -32,7 +32,7 @@ class FSSimpleUserManager(
     }
 
     override fun userExists(user: FSUser): Boolean {
-        return users.contains(user)
+        return users[user.id]?.password == user.password
     }
 
     override fun addUserSession(user: FSUser, session: FSSession): FSSession? {
@@ -59,7 +59,7 @@ class FSSimpleUserManager(
 
     override fun registerUser(user: FSUser): Boolean {
         if (userExists(user)) return false
-        users.add(user)
+        users[user.id] = user
         rewriteFile()
         return true
     }
@@ -67,7 +67,8 @@ class FSSimpleUserManager(
     override fun unregisterUser(user: FSUser): Boolean {
         if (userExists(user)) {
             if (sessions[user] != null) return false // cannot remove if user session exists
-            users.remove(user)
+            if (users[user.id]?.password != user.password) return false
+            users.remove(user.id)
             rewriteFile()
             return true
         }
@@ -92,8 +93,12 @@ class FSSimpleUserManager(
     fun rewriteFile() {
         val writer = PrintWriter(FileWriter(userDataFile, false))
         for (itUser in users) {
-            writer.println("${itUser.id}\t${itUser.password}")
+            writer.println("${itUser.value.id}\t${itUser.value.password}")
         }
         writer.close()
+    }
+
+    fun findUserById(id: String): FSUser? {
+        return users[id]
     }
 }

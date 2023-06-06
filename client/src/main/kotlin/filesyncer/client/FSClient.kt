@@ -1,6 +1,7 @@
 package filesyncer.client
 
 import filesyncer.common.*
+import filesyncer.common.file.FSFileMetaData
 import filesyncer.common.file.FSFileTransfer
 import java.io.File
 import java.net.Socket
@@ -172,8 +173,19 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
 
     private fun upload(fileName: String) {
         val file = localRepoDir.resolve(fileName)
-        val socket = Socket(address, port)
+        val socket = Socket(address, uploadPort)
         fileTransfer!!.upload(socket, file)
+    }
+
+    private fun download(metadata: FSFileMetaData, file: File) {
+        val socket = Socket(address, downloadPort)
+        val socketInputStream = socket.getInputStream()
+        val socketOutputStream = socket.getOutputStream()
+
+        fileTransfer!!.sendMetaData(metadata, socketOutputStream)
+
+        val fileOutputStream = file.outputStream()
+        fileOutputStream.use { socketInputStream.copyTo(it) }
     }
 
     val frontInterface =
