@@ -23,7 +23,8 @@ class FSServerFileManager(val serverFolder: File = File(System.getProperty("user
 
         // init user-file relation
         val files =
-            repoDataRoot.listFiles()?.filter { it.isFile && it.endsWith(".$metaDataSuffix") }
+            repoDataRoot.listFiles()?.filter { it.isFile && it.name.endsWith(".$metaDataSuffix") }
+
         if (files != null) {
             for (file in files) {
                 val metaData = loadMetaData(file)
@@ -77,7 +78,9 @@ class FSServerFileManager(val serverFolder: File = File(System.getProperty("user
 
     fun saveMetaData(metaData: FSFileMetaData) {
         val savePath = getMetaDataFile(metaData)
-        val msg = FSFileMetaDataMessage(metaData)
+        val msg = FSFileMetaDataMessage(metaData, "")
+
+        share(metaData, metaData.owner)
 
         val ous = savePath.outputStream()
         val dous = DataOutputStream(ous)
