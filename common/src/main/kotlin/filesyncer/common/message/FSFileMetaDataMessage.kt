@@ -12,11 +12,13 @@ class FSFileMetaDataMessage(
     var md5: String = "",
     var path: File? = null,
     var owner: String = "",
-    var shared: List<String> = emptyList()
+    var shared: List<String> = emptyList(),
+    var requester: String = "",
 ) : FSMessage() {
 
     constructor(
-        metaData: FSFileMetaData
+        metaData: FSFileMetaData,
+        requester: String
     ) : this(
         metaData.name,
         metaData.fileSize,
@@ -24,10 +26,11 @@ class FSFileMetaDataMessage(
         metaData.md5,
         metaData.path,
         metaData.owner,
-        metaData.shared
+        metaData.shared,
+        requester
     )
 
-    var strListField = FSVarLenStringListField(name, md5, owner, *shared.toTypedArray())
+    var strListField = FSVarLenStringListField(name, md5, owner, requester, *shared.toTypedArray())
 
     override fun marshallBody() {
         mBytebuffer!!.putLong(fileSize)
@@ -44,7 +47,8 @@ class FSFileMetaDataMessage(
         name = strListField.strs[0]
         md5 = strListField.strs[1]
         owner = strListField.strs[2]
-        shared = strListField.strs.subList(3, strListField.strs.size)
+        requester = strListField.strs[3]
+        shared = strListField.strs.subList(4, strListField.strs.size)
     }
 
     override fun getByteNums(): Int {

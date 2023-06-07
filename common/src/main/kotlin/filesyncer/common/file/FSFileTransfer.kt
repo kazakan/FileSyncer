@@ -11,18 +11,23 @@ class FSFileTransfer {
     fun _download(sourceStream: InputStream, destStream: OutputStream) {
         onStartDownload()
 
-        val metaData = receiveMetaData(sourceStream)
+        val metaDataMessage = receiveMetaData(sourceStream)
 
-        onReceiveMetaData(metaData)
+        onReceiveMetaData(metaDataMessage)
 
         destStream.use { sourceStream.copyTo(it) }
 
-        onFinishDownload(metaData)
+        onFinishDownload(metaDataMessage)
     }
 
-    fun _upload(metaData: FSFileMetaData, sourceStream: InputStream, destStream: OutputStream) {
+    fun _upload(
+        requester: String,
+        metaData: FSFileMetaData,
+        sourceStream: InputStream,
+        destStream: OutputStream
+    ) {
 
-        sendMetaData(metaData, destStream)
+        sendMetaData(requester, metaData, destStream)
 
         destStream.use { sourceStream.copyTo(destStream) }
     }
@@ -33,7 +38,7 @@ class FSFileTransfer {
         _download(ios, ous)
     }
 
-    fun upload(socket: Socket, file: File) {
+    fun upload(requester: String, socket: Socket, file: File) {
 
         val ios = file.inputStream()
         val ous = socket.getOutputStream()
@@ -45,21 +50,21 @@ class FSFileTransfer {
         metaData.name = file.name
         metaData.md5 = FSFileHash.md5(file)
 
-        _upload(metaData, ios, ous)
+        _upload(requester, metaData, ios, ous)
         socket.close()
         ios.close()
 
         onFinishUpload(metaData)
     }
 
-    fun sendMetaData(metaData: FSFileMetaData, outputStream: OutputStream) {
-        val metaDataMsg = FSFileMetaDataMessage(metaData)
+    fun sendMetaData(requester: String, metaData: FSFileMetaData, outputStream: OutputStream) {
+        val metaDataMsg = FSFileMetaDataMessage(metaData, requester)
         val msgBuffer = metaDataMsg.marshall()
         outputStream.write(msgBuffer!!.array())
         outputStream.flush()
     }
 
-    fun receiveMetaData(inputStream: InputStream): FSFileMetaData {
+    fun receiveMetaData(inputStream: InputStream): FSFileMetaDataMessage {
         val msg = FSFileMetaDataMessage()
         val dios = DataInputStream(inputStream)
 
@@ -72,12 +77,12 @@ class FSFileTransfer {
 
         msg.unmarshall(byteBuffer)
 
-        return msg.toFileMetaData()
+        return msg
     }
 
     fun onStartDownload() {}
-    fun onReceiveMetaData(metaData: FSFileMetaData) {}
-    fun onFinishDownload(metaData: FSFileMetaData) {}
+    fun onReceiveMetaData(metaData: FSFileMetaDataMessage) {}
+    fun onFinishDownload(metaData: FSFileMetaDataMessage) {}
 
     fun onStartUpload(metaData: FSFileMetaData) {}
     fun onFinishUpload(metaData: FSFileMetaData) {}

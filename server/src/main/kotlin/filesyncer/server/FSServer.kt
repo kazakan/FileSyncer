@@ -31,7 +31,15 @@ class FSServer(
         running = true
         while (running) {
             val socket = ss.accept()
-            val worker = FSServerSideSession(socket, userManager, repoDir, logicalClock, verbose)
+            val worker =
+                FSServerSideSession(
+                    socket,
+                    userManager,
+                    repoDir,
+                    logicalClock,
+                    fileManager,
+                    verbose
+                )
             if (verbose) {
                 println(
                     "User tried make connection. IP : ${socket.inetAddress.hostAddress}, PORT : ${socket.port}"
@@ -48,7 +56,10 @@ class FSServer(
             val socket = ss.accept()
             val socketInputStream = socket.getInputStream()
 
-            val metaData = fileTransfer.receiveMetaData(socketInputStream)
+            val metaDataMsg = fileTransfer.receiveMetaData(socketInputStream)
+            val metaData = metaDataMsg.toFileMetaData()
+            val requester = metaDataMsg.requester
+            fileManager.saveMetaData(metaData)
 
             val file = fileManager.getFile(metaData)
             val fileOutputStream = file.outputStream()
@@ -73,14 +84,17 @@ class FSServer(
             val socketOutputStream = socket.getOutputStream()
 
             // get which file client wants
-            val metaData = fileTransfer.receiveMetaData(socketInputStream)
+            val metaDataMsg = fileTransfer.receiveMetaData(socketInputStream)
+            val metaData = metaDataMsg.toFileMetaData()
+            val requester = metaDataMsg.requester
+
             val newestMetaData = fileManager.getNewestMetaData(metaData) ?: metaData
 
             val file = fileManager.getFile(newestMetaData)
             val fileInputStream = file.inputStream()
 
             // send
-            fileTransfer.sendMetaData(newestMetaData, socketOutputStream)
+            fileTransfer.sendMetaData("", newestMetaData, socketOutputStream)
             socketOutputStream.use { fileInputStream.copyTo(it) }
         }
     }
@@ -125,7 +139,7 @@ class FSServer(
 
     // broadcast message to all alive event connections
     override fun broadcast(msg: FSEventMessage) {
-        println("Broadcast msg code=${msg.mEventcode}, ID=${msg.messageField.strs[0]}")
+        println("Broadcast msg code=${msg.mEventcode}, msg=${msg.messageField.strs}")
         for (entry in userManager.sessions) {
             if (!entry.value.worker.isClosed()) entry.value.worker.putMsgToSendQueue(msg)
         }
@@ -142,7 +156,7 @@ class FSServer(
     }
 
     override fun broadcast(msg: FSEventMessage, users: List<String>) {
-        println("Broadcast msg code=${msg.mEventcode}, ID=${msg.messageField.strs[0]}")
+        println("Broadcast msg code=${msg.mEventcode}, msg=${msg.messageField.strs}")
         for (id in users) {
             val fsUser = userManager.findUserById(id)
             if (fsUser != null) {

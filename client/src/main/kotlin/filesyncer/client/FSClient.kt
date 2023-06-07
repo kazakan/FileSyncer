@@ -35,7 +35,6 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
 
     private var _id = ""
     private var _passwd = ""
-    private var _cloudFileLists: List<FSFileMetaData> = mutableListOf()
 
     private val _reportMsgQueue = LinkedBlockingQueue<String>()
 
@@ -44,7 +43,8 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
     private val logicalClock = FSLogicalClock()
     private var fileTransfer: FSFileTransfer? = FSFileTransfer()
 
-    private var localFiles = mutableListOf<FSFileMetaData>()
+    private var _localFileLists = mutableListOf<FSFileMetaData>()
+    private var _cloudFileLists = mutableListOf<FSFileMetaData>()
 
     fun start() {
 
@@ -119,7 +119,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
                     data.fromStringArray(
                         msg.messageField.strs.slice(IntRange(i * 6, i * 6 + 5)).toTypedArray()
                     )
-                    _cloudFileLists.plus(data)
+                    _cloudFileLists = _cloudFileLists.plus(data).toMutableList()
                 }
             }
             EventType.SYNC -> {
@@ -192,7 +192,18 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
     private fun upload(fileName: String) {
         val file = localRepoDir.resolve(fileName)
         val socket = Socket(address, uploadPort)
-        fileTransfer!!.upload(socket, file)
+        val socketOutputStream = socket.getOutputStream()
+        val fileInputStream = file.inputStream()
+        val metaData = FSFileMetaData()
+
+        metaData.fileSize = file.length()
+        metaData.name = file.name
+        metaData.md5 = FSFileHash.md5(file)
+        metaData.owner = _id
+
+        fileTransfer!!.sendMetaData(_id, metaData, socketOutputStream)
+
+        socketOutputStream.use { fileInputStream.copyTo(it) }
     }
 
     private fun download(metadata: FSFileMetaData, file: File) {
@@ -200,11 +211,13 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
         val socketInputStream = socket.getInputStream()
         val socketOutputStream = socket.getOutputStream()
 
-        fileTransfer!!.sendMetaData(metadata, socketOutputStream)
+        fileTransfer!!.sendMetaData(_id, metadata, socketOutputStream)
 
         val fileOutputStream = file.outputStream()
         fileOutputStream.use { socketInputStream.copyTo(it) }
     }
+
+    private fun resolveDifference() {}
 
     val frontInterface =
         object : FSClientFrontInterface {
@@ -305,8 +318,8 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
 
                 val cloudFiles = _cloudFileLists
 
-                val lists = HashSet(localFiles + cloudFiles).toList().sortedBy { it.name }
-                val localSet = HashSet(localFiles)
+                val lists = HashSet(_localFileLists + cloudFiles).toList().sortedBy { it.name }
+                val localSet = HashSet(_localFileLists)
                 val cloudSet = HashSet(cloudFiles)
                 val data =
                     lists.map {
