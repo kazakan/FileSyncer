@@ -27,10 +27,10 @@ class FSEventMessage(eventCode: Int = EventType.NONE, vararg messages: String) :
         const val REGISTER_GRANTED: Int = 16 // response for REGISTER_REQUEST
         const val REGISTER_REJECTED: Int = 17
 
-        const val FILE_CREATE: Int = 15 // Tell file created, (filename, md5)
-        const val FILE_DELETE: Int = 16 // Tell file deleted, (filename)
-        const val FILE_MODIFY: Int = 17 // Tell file modified (filename, md5)
-        const val SYNC: Int = 18 // Sync logical clock
+        const val FILE_CREATE: Int = 18 // Tell file created, (filename, md5)
+        const val FILE_DELETE: Int = 19 // Tell file deleted, (filename)
+        const val FILE_MODIFY: Int = 20 // Tell file modified (filename, md5)
+        const val SYNC: Int = 21 // Sync logical clock
     }
 
     var mEventcode = eventCode
