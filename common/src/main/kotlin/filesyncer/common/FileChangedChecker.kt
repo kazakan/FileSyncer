@@ -6,7 +6,6 @@ import java.nio.file.Path
 import java.nio.file.StandardWatchEventKinds
 import java.nio.file.StandardWatchEventKinds.OVERFLOW
 import java.nio.file.WatchEvent
-import kotlin.concurrent.thread
 
 /**  */
 class FileWatcher(rootDir: Path) {
@@ -18,7 +17,7 @@ class FileWatcher(rootDir: Path) {
     val watchService = FileSystems.getDefault().newWatchService()
     var fileChangedListener: OnFileChangedListener? = null
 
-    val checkerThread = thread {
+    val checkerThread = Thread {
         while (true) {
             val key = watchService.take()
 
