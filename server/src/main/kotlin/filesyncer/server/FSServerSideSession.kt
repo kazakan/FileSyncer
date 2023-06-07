@@ -95,10 +95,10 @@ class FSServerSideSession(
 
                             val fileData = fileManager.listFiles(userId)
 
-                            val array = arrayOf<String>()
+                            var array = arrayOf<String>()
 
                             for (metaData in fileData) {
-                                array.plus(metaData.toStringArray())
+                                array = array.plus(metaData.toStringArray())
                             }
 
                             if (verbose) println("List folder request handled.")
