@@ -35,18 +35,16 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
 
     private var _id = ""
     private var _passwd = ""
-    private var _cloudFileLists: List<String> = mutableListOf()
+    private var _cloudFileLists: List<FSFileMetaData> = mutableListOf()
 
     private val _reportMsgQueue = LinkedBlockingQueue<String>()
 
-    private val _localRepoWatcher = FileWatcher(localRepoDir.toPath())
+    private var _localRepoWatcher: FileWatcher? = null
 
     private val logicalClock = FSLogicalClock()
-    private var fileTransfer: FSFileTransfer? = null
+    private var fileTransfer: FSFileTransfer? = FSFileTransfer()
 
-    init {
-        _localRepoWatcher.fileChangedListener = this
-    }
+    private var localFiles = mutableListOf<FSFileMetaData>()
 
     fun start() {
 
@@ -66,11 +64,15 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
         runner = FSEventConnWorker(socket, this, true)
         runner!!.run()
 
-        _localRepoWatcher.run()
+        _localRepoWatcher = FileWatcher(localRepoDir.toPath())
+        _localRepoWatcher!!.fileChangedListener = this
+        _localRepoWatcher!!.run()
+
+        syncLogicalClock()
     }
 
     override fun handleMessage(msg: FSEventMessage) {
-        println("client code = ${msg.mEventcode}, id: ${msg.messageField.strs[0]}")
+        println("client code = ${msg.mEventcode}, msg: ${msg.messageField.strs}")
         when (msg.mEventcode) {
             EventType.NONE -> {
                 // do nothing
@@ -107,7 +109,18 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
             }
             EventType.LISTFOLDER_RESPONSE -> {
                 waitingListFolderRequest.grant()
-                _cloudFileLists = msg.messageField.strs.toList()
+
+                _cloudFileLists = mutableListOf()
+
+                val nFiles = msg.messageField.strs.size / 6
+
+                for (i in 0 until nFiles) {
+                    val data = FSFileMetaData()
+                    data.fromStringArray(
+                        msg.messageField.strs.slice(IntRange(i * 6, i * 6 + 5)).toTypedArray()
+                    )
+                    _cloudFileLists.plus(data)
+                }
             }
             EventType.SYNC -> {
                 val serverClockValue = msg.messageField.strs[0].toLong()
@@ -148,13 +161,18 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
     override fun onFileChanged(file: File, kind: WatchEvent.Kind<out Any>) {
         val name = file.name
         if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
+            println("${name} created")
             // TODO : upload
             upload(name)
         } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
+
+            println("${name} removed")
             // TODO : tell delete
             runner!!.putMsgToSendQueue(FSEventMessage(EventType.FILE_DELETE, name))
         } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
             // TODO : upload
+
+            println("${name} modified")
             upload(name)
         }
     }
@@ -237,7 +255,6 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
                     _id = id
                     _passwd = password
                     waitingLoginRequest.reset()
-                    syncLogicalClock()
                     return true
                 }
 
@@ -276,12 +293,9 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
             }
 
             override fun showFolder(dir: String): List<Map<String, String>> {
-                val localFiles =
-                    this@Client.localRepoDir.listFiles()?.filter { it.isFile }?.map { it.name }
-                        ?: emptyList()
 
                 try {
-                    runner!!.putMsgToSendQueue(FSEventMessage(EventType.LISTFOLDER_REQUEST))
+                    runner!!.putMsgToSendQueue(FSEventMessage(EventType.LISTFOLDER_REQUEST, _id))
                 } catch (e: Exception) {
                     return emptyList()
                 }
@@ -291,7 +305,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
 
                 val cloudFiles = _cloudFileLists
 
-                val lists = HashSet(localFiles + cloudFiles).toList().sorted()
+                val lists = HashSet(localFiles + cloudFiles).toList().sortedBy { it.name }
                 val localSet = HashSet(localFiles)
                 val cloudSet = HashSet(cloudFiles)
                 val data =
@@ -301,7 +315,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
                         val status =
                             if (inLocal) if (inCloud) "Both" else "Local Only"
                             else if (inCloud) "Cloud Only" else "ERR"
-                        mapOf("name" to it, "status" to status, "type" to "file")
+                        mapOf("name" to it.name, "status" to status, "type" to "file")
                     }
                 return data
             }
@@ -316,7 +330,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
                 runner?.stop()
                 fileTransfer = null
 
-                _localRepoWatcher.stop()
+                _localRepoWatcher!!.stop()
             }
 
             override fun takeReportMessage(): String? {

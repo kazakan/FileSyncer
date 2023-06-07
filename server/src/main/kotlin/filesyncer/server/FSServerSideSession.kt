@@ -5,13 +5,13 @@ import java.io.File
 import java.net.Socket
 import message.FSEventMessage
 import message.FSEventMessage.EventType
-import message.FSVarLenStringListField
 
 class FSServerSideSession(
     socket: Socket,
     val userManager: FSUserManager,
     val repoDir: File,
     val clock: FSLogicalClock,
+    val fileManager: FSServerFileManager,
     verbose: Boolean = false
 ) : FSSession(socket, verbose) {
 
@@ -22,9 +22,7 @@ class FSServerSideSession(
             object : FSEventMessageHandler {
                 override fun handleMessage(msg: FSEventMessage) {
                     if (verbose)
-                        println(
-                            "Got Msg with Code=${msg.mEventcode}, ID=${msg.messageField.strs[0]}"
-                        )
+                        println("Got Msg with Code=${msg.mEventcode}, msg=${msg.messageField.strs}")
                     when (msg.mEventcode) {
                         EventType.ANSWER_ALIVE -> {}
                         EventType.LOGIN_REQUEST -> {
@@ -93,15 +91,20 @@ class FSServerSideSession(
                             }
                         }
                         EventType.LISTFOLDER_REQUEST -> {
-                            val names = repoDir.listFiles()?.filter { it.isFile }?.map { it.name }
-                            if (verbose) println("List folder request handled.")
-                            if (names != null) {
-                                connWorker.putMsgToSendQueue(
-                                    FSEventMessage(EventType.LISTFOLDER_RESPONSE).apply {
-                                        this.messageField = FSVarLenStringListField(names)
-                                    }
-                                )
+                            val userId = msg.messageField.strs[0]
+
+                            val fileData = fileManager.listFiles(userId)
+
+                            val array = arrayOf<String>()
+
+                            for (metaData in fileData) {
+                                array.plus(metaData.toStringArray())
                             }
+
+                            if (verbose) println("List folder request handled.")
+                            connWorker.putMsgToSendQueue(
+                                FSEventMessage(EventType.LISTFOLDER_RESPONSE, *array)
+                            )
                         }
                         EventType.SYNC -> {
                             val clientTime = msg.messageField.strs[0].toLong()
