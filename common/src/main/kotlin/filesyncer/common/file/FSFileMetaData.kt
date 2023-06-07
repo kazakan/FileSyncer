@@ -25,4 +25,15 @@ data class FSFileMetaData(
         owner = arr[4]
         shared = arr[5].split("/")
     }
+
+    fun write(file: File) {
+        val ous = file.outputStream()
+        ous.write(toStringArray().joinToString("\n").toByteArray())
+        ous.close()
+    }
+
+    fun read(file: File) {
+        val lines = file.readLines()
+        fromStringArray(lines.toTypedArray())
+    }
 }
