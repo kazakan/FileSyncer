@@ -81,10 +81,7 @@ class FSClientFileManager(
         file.delete()
         val meta = metaDataMap[file.name] ?: return
 
-        val metaFile = getMetaDataFile(meta)
-        metaFile.delete()
-
-        metaDataMap.remove(file.name)
+        deleteMetaData(meta)
     }
 
     /** Create and add metadata about [file] which is located [localFolder] */
@@ -110,5 +107,12 @@ class FSClientFileManager(
 
     fun registerMetaData(name: String, data: FSFileMetaData) {
         metaDataMap[name] = data
+    }
+
+    fun deleteMetaData(metaData: FSFileMetaData) {
+        val metaFile = getMetaDataFile(metaData)
+        metaFile.delete()
+
+        metaDataMap.remove(metaData.name)
     }
 }
