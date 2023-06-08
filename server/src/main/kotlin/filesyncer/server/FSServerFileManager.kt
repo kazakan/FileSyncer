@@ -1,11 +1,7 @@
 package filesyncer.server
 
 import filesyncer.common.file.FSFileMetaData
-import filesyncer.common.message.FSFileMetaDataMessage
-import java.io.DataInputStream
-import java.io.DataOutputStream
-import java.io.File
-import java.nio.ByteBuffer
+:import java.io.File
 
 class FSServerFileManager(val serverFolder: File = File(System.getProperty("user.home"))) {
     val repoRoot = serverFolder.resolve("FsServerRepo")
@@ -78,36 +74,16 @@ class FSServerFileManager(val serverFolder: File = File(System.getProperty("user
 
     fun saveMetaData(metaData: FSFileMetaData) {
         val savePath = getMetaDataFile(metaData)
-        val msg = FSFileMetaDataMessage(metaData, "")
 
         share(metaData, metaData.owner)
 
-        val ous = savePath.outputStream()
-        val dous = DataOutputStream(ous)
-        val msgBuffer = msg.marshall()
-        dous.write(msgBuffer!!.array())
-        dous.flush()
-
-        dous.close()
+        metaData.write(savePath)
     }
 
     fun loadMetaData(file: File): FSFileMetaData {
-        val ios = file.inputStream()
-        val dios = DataInputStream(ios)
-        val msg = FSFileMetaDataMessage()
-
-        val nBytes: Int = dios.readInt()
-        val byteBuffer = ByteBuffer.allocate(nBytes)
-        byteBuffer.putInt(nBytes)
-        while (byteBuffer.hasRemaining()) {
-            byteBuffer.put(dios.readByte())
-        }
-
-        msg.unmarshall(byteBuffer)
-
-        dios.close()
-
-        return msg.toFileMetaData()
+        val metaData = FSFileMetaData()
+        metaData.read(file)
+        return metaData
     }
 
     fun getFile(metaData: FSFileMetaData): File {
