@@ -6,7 +6,8 @@ import java.io.File
 
 class FSClientFileManager(
     val localFolder: File = File(System.getProperty("user.home")),
-    val metaDataFolder: File = File(System.getProperty("user.home")).resolve(".fslocalmeta")
+    val metaDataFolder: File = File(System.getProperty("user.home")).resolve(".fslocalmeta"),
+    val user: String
 ) {
 
     val metaDataSuffix = "fsmeta"
@@ -17,14 +18,43 @@ class FSClientFileManager(
         if (!metaDataFolder.exists()) metaDataFolder.mkdir()
 
         val metaFiles =
-            metaDataFolder.listFiles()?.filter { it.isFile && it.name.endsWith(".$metaDataSuffix") }
+            metaDataFolder.listFiles()!!.filter {
+                it.isFile && it.name.endsWith(".$metaDataSuffix")
+            }
 
-        if (metaFiles != null) {
-            for (file in metaFiles) {
-                val metaData = loadMetaData(file)
-                registerMetaData(metaData)
+        val files = localFolder.listFiles()!!.filter { it.isFile }
+        val metaDataBasedOnLocal =
+            files.map { FSFileMetaData(it.name, it.length(), 0L, FSFileHash.md5(it)) }
+
+        for (file in metaFiles) {
+            val metaData = loadMetaData(file)
+            registerMetaData(metaData)
+        }
+
+        // comparison metadata and local files
+        val newFiles = mutableListOf<FSFileMetaData>()
+        val modifiedFiles = mutableListOf<FSFileMetaData>()
+        val removedFiles = mutableListOf<FSFileMetaData>()
+
+        for (meta in metaDataBasedOnLocal) {
+            if (meta.name in metaDataMap) {
+                if (meta.md5 != metaDataMap[meta.name]!!.md5) {
+                    modifiedFiles.add(metaDataMap[meta.name]!!)
+                }
+            } else {
+                meta.owner = user
+                newFiles.add(meta)
             }
         }
+
+        val localnameset = HashSet(metaDataBasedOnLocal.map { it.name })
+        for (metadataName in metaDataMap.keys) {
+            if (!localnameset.contains(metadataName)) {
+                removedFiles.add(metaDataMap[metadataName]!!)
+            }
+        }
+
+        // resolve
     }
 
     fun saveMetaData(metaData: FSFileMetaData) {
@@ -57,7 +87,7 @@ class FSClientFileManager(
         metaDataMap.remove(file.name)
     }
 
-    /** Create and add metadata about [file] which is located [metaDataFolder] */
+    /** Create and add metadata about [file] which is located [localFolder] */
     fun add(file: File, owner: String, timeStamp: Long) {
 
         val metaData = FSFileMetaData()
@@ -71,11 +101,14 @@ class FSClientFileManager(
     }
 
     fun registerMetaData(metaData: FSFileMetaData) {
-        metaDataMap[metaData.name] = metaData
+        registerMetaData(metaData.name, metaData)
     }
 
-    /** Handle difference with cloud files */
-    fun resolveCloudDiff(cloudFileList: List<FSFileMetaData>) {
-        val localList = metaDataMap.values.toMutableList()
+    fun getMetaData(name: String): FSFileMetaData? {
+        return metaDataMap[name]
+    }
+
+    fun registerMetaData(name: String, data: FSFileMetaData) {
+        metaDataMap[name] = data
     }
 }

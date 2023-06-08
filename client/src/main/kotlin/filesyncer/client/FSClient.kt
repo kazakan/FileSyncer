@@ -43,8 +43,10 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
     private val logicalClock = FSLogicalClock()
     private var fileTransfer: FSFileTransfer? = FSFileTransfer()
 
-    private var _localFileLists = mutableListOf<FSFileMetaData>()
+    // private var _localFileLists = mutableListOf<FSFileMetaData>()
     private var _cloudFileLists = mutableListOf<FSFileMetaData>()
+
+    private var fileManager: FSClientFileManager? = null
 
     fun start() {
 
@@ -64,22 +66,12 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
         runner = FSEventConnWorker(socket, this, true)
         runner!!.run()
 
-        _localRepoWatcher = FileWatcher(localRepoDir.toPath())
-        _localRepoWatcher!!.fileChangedListener = this
-        _localRepoWatcher!!.run()
-
         syncLogicalClock()
     }
 
     override fun handleMessage(msg: FSEventMessage) {
         println("client code = ${msg.mEventcode}, msg: ${msg.messageField.strs}")
         when (msg.mEventcode) {
-            EventType.NONE -> {
-                // do nothing
-            }
-            EventType.ASK_ALIVE -> {}
-            EventType.ANSWER_ALIVE -> {}
-            EventType.LOGIN_REQUEST -> {}
             EventType.LOGIN_GRANTED -> {
                 waitingLoginRequest.grant()
                 state = FSCLIENT_STATE.LOGGEDIN
@@ -97,10 +89,6 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
             EventType.UPLOAD_DONE -> {
                 _reportMsgQueue.put("${msg.messageField.strs[2]} updated to server.")
             }
-            EventType.DOWNLOAD_DONE -> {}
-            EventType.UPLOAD_REQUEST -> {}
-            EventType.DOWNLOAD_REQUEST -> {}
-            EventType.REGISTER_REQUEST -> {}
             EventType.REGISTER_GRANTED -> {
                 waitingRegisterRequest.grant()
             }
@@ -136,13 +124,13 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
             EventType.FILE_DELETE -> {
                 // TODO : remove file in client
                 val fileName = msg.messageField.strs[0]
-                localRepoDir.resolve(fileName).delete()
+                fileManager!!.localFolder.resolve(fileName).delete()
             }
             EventType.FILE_MODIFY -> {
                 val fileName = msg.messageField.strs[0]
                 val cloudMd5 = msg.messageField.strs[1]
 
-                val localFilePath = this.localRepoDir.resolve(fileName)
+                val localFilePath = fileManager!!.localFolder.resolve(fileName)
                 val localMd5 = FSFileHash.md5(localFilePath)
 
                 if (localMd5 != cloudMd5) {
@@ -160,20 +148,42 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
 
     override fun onFileChanged(file: File, kind: WatchEvent.Kind<out Any>) {
         val name = file.name
+        val file = fileManager!!.localFolder.resolve(name)
         if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
             println("${name} created")
-            // TODO : upload
-            upload(name)
-        } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
+            // upload
+            val metaData = FSFileMetaData()
 
+            metaData.name = name
+            metaData.owner = _id
+            metaData.fileSize = file.length()
+            metaData.md5 = FSFileHash.md5(file)
+            metaData.timeStamp = logicalClock.get()
+
+            fileManager!!.registerMetaData(metaData)
+            fileManager!!.saveMetaData(metaData)
+
+            upload(name)
+            runner!!.putMsgToSendQueue(FSEventMessage(EventType.FILE_CREATE, name))
+        } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
             println("${name} removed")
-            // TODO : tell delete
+            // tell delete
             runner!!.putMsgToSendQueue(FSEventMessage(EventType.FILE_DELETE, name))
         } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
-            // TODO : upload
-
             println("${name} modified")
+
+            // upload
+            val metaData = fileManager!!.getMetaData(name)!!
+            metaData.fileSize = file.length()
+            metaData.md5 = FSFileHash.md5(file)
+            metaData.timeStamp = logicalClock.get()
+
+            fileManager!!.registerMetaData(metaData)
+            fileManager!!.saveMetaData(metaData)
+
             upload(name)
+
+            runner!!.putMsgToSendQueue(FSEventMessage(EventType.FILE_MODIFY, name))
         }
     }
 
@@ -190,16 +200,11 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
     }
 
     private fun upload(fileName: String) {
-        val file = localRepoDir.resolve(fileName)
+        val file = fileManager!!.localFolder.resolve(fileName)
         val socket = Socket(address, uploadPort)
         val socketOutputStream = socket.getOutputStream()
         val fileInputStream = file.inputStream()
-        val metaData = FSFileMetaData()
-
-        metaData.fileSize = file.length()
-        metaData.name = file.name
-        metaData.md5 = FSFileHash.md5(file)
-        metaData.owner = _id
+        val metaData = fileManager!!.getMetaData(file.name)!!
 
         fileTransfer!!.sendMetaData(_id, metaData, socketOutputStream)
 
@@ -211,13 +216,42 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
         val socketInputStream = socket.getInputStream()
         val socketOutputStream = socket.getOutputStream()
 
+        // send metadata to download
         fileTransfer!!.sendMetaData(_id, metadata, socketOutputStream)
 
+        // download metadata & file
         val fileOutputStream = file.outputStream()
+        val metadata = fileTransfer!!.receiveMetaData(socketInputStream).toFileMetaData()
         fileOutputStream.use { socketInputStream.copyTo(it) }
+
+        fileManager!!.registerMetaData(metadata)
+        fileManager!!.saveMetaData(metadata)
     }
 
-    private fun resolveDifference() {}
+    private fun resolveDifference(cloudFileList: List<FSFileMetaData>) {
+
+        val localList = fileManager!!.metaDataMap.values.toMutableList()
+        val cloudMap = HashMap<String, FSFileMetaData>()
+
+        for (metaData in cloudFileList) {
+            cloudMap[metaData.name] = metaData
+        }
+
+        for (local in localList) {
+            if (cloudMap.contains(local.name)) {
+                val cloudMetaData = cloudMap[local.name]
+                if (cloudMetaData!!.md5 != local.md5) {
+                    if (local.timeStamp <= cloudMetaData.timeStamp) {} else {
+
+                        TODO("download")
+                    }
+                }
+            } else {
+                // file is in local but not in cloud.
+                TODO("upload")
+            }
+        }
+    }
 
     val frontInterface =
         object : FSClientFrontInterface {
@@ -268,6 +302,19 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
                     _id = id
                     _passwd = password
                     waitingLoginRequest.reset()
+
+                    // login succeed
+                    fileManager =
+                        FSClientFileManager(
+                            localRepoDir.resolve(_id),
+                            localRepoDir.resolve(".${_id}_fsmetadata"),
+                            _id
+                        )
+
+                    _localRepoWatcher = FileWatcher(fileManager!!.localFolder.toPath())
+                    _localRepoWatcher!!.fileChangedListener = this@Client
+                    _localRepoWatcher!!.run()
+
                     return true
                 }
 
@@ -317,6 +364,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
                 waitingListFolderRequest.reset()
 
                 val cloudFiles = _cloudFileLists
+                val _localFileLists = fileManager!!.metaDataMap.values
 
                 val lists = HashSet(_localFileLists + cloudFiles).toList().sortedBy { it.name }
                 val localSet = HashSet(_localFileLists)
