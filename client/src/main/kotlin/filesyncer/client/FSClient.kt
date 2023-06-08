@@ -168,7 +168,11 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
         } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
             println("${name} removed")
             // tell delete
-            runner!!.putMsgToSendQueue(FSEventMessage(EventType.FILE_DELETE, name))
+            val metaData = fileManager!!.getMetaData(name)!!
+            runner!!.putMsgToSendQueue(
+                FSEventMessage(EventType.FILE_DELETE, *metaData.toStringArray())
+            )
+            fileManager!!.deleteMetaData(metaData)
         } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
             println("${name} modified")
 
