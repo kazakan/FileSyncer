@@ -12,7 +12,7 @@ data class FSFileMetaData(
     var shared: List<String> = emptyList()
 ) {
     fun toStringArray(): Array<String> {
-        return arrayOf(name, "$fileSize", "$timeStamp", md5, owner, shared.joinToString("\t"))
+        return arrayOf(name, "$fileSize", "$timeStamp", md5, owner, shared.joinToString("/"))
     }
 
     fun fromStringArray(arr: Array<String>) {
