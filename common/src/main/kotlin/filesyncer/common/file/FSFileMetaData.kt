@@ -12,7 +12,7 @@ data class FSFileMetaData(
     var shared: List<String> = emptyList()
 ) {
     fun toStringArray(): Array<String> {
-        return arrayOf(name, "$fileSize", "$timeStamp", md5, owner, shared.joinToString("/"))
+        return arrayOf(name, "$fileSize", "$timeStamp", md5, owner, shared.joinToString("\t"))
     }
 
     fun fromStringArray(arr: Array<String>) {
@@ -28,12 +28,12 @@ data class FSFileMetaData(
 
     fun write(file: File) {
         val ous = file.outputStream()
-        ous.write(toStringArray().joinToString("\n").toByteArray())
+        ous.write(toStringArray().joinToString("\t").toByteArray())
         ous.close()
     }
 
     fun read(file: File) {
-        val lines = file.readLines()
-        fromStringArray(lines.toTypedArray())
+        val line = file.readLines()[0]
+        fromStringArray(line.split("\t").toTypedArray())
     }
 }
