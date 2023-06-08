@@ -209,6 +209,9 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
         fileTransfer!!.sendMetaData(_id, metaData, socketOutputStream)
 
         socketOutputStream.use { fileInputStream.copyTo(it) }
+
+        socket.close()
+        fileInputStream.close()
     }
 
     private fun download(metadata: FSFileMetaData, file: File) {
@@ -226,6 +229,9 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
 
         fileManager!!.registerMetaData(metadata)
         fileManager!!.saveMetaData(metadata)
+
+        fileOutputStream.close()
+        socket.close()
     }
 
     private fun resolveDifference(cloudFileList: List<FSFileMetaData>) {
@@ -363,10 +369,11 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
                 waitingListFolderRequest.waitLock()
                 waitingListFolderRequest.reset()
 
-                val cloudFiles = _cloudFileLists
-                val _localFileLists = fileManager!!.metaDataMap.values
+                val cloudFiles: List<String> = _cloudFileLists.map { it.name }
+                val _localFileLists: List<String> = fileManager!!.metaDataMap.values.map { it.name }
 
-                val lists = HashSet(_localFileLists + cloudFiles).toList().sortedBy { it.name }
+                val lists = HashSet(_localFileLists + cloudFiles).toTypedArray()
+                lists.sort()
                 val localSet = HashSet(_localFileLists)
                 val cloudSet = HashSet(cloudFiles)
                 val data =
@@ -376,7 +383,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
                         val status =
                             if (inLocal) if (inCloud) "Both" else "Local Only"
                             else if (inCloud) "Cloud Only" else "ERR"
-                        mapOf("name" to it.name, "status" to status, "type" to "file")
+                        mapOf("name" to it, "status" to status, "type" to "file")
                     }
                 return data
             }
