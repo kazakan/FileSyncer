@@ -38,7 +38,7 @@ open class FSEventConnWorker(
         } catch (e: Exception) {
             if (verbose) {
                 println("Stopping FSEventConnworker due to socket is dead")
-                // e.printStackTrace()
+                e.printStackTrace()
             }
         } finally {
             closeReserved = true
@@ -65,6 +65,7 @@ open class FSEventConnWorker(
 
     val threadUncaughtExceptionHandler =
         Thread.UncaughtExceptionHandler { t, e ->
+            e.printStackTrace()
             closeReserved = true
             sendMsgThread.interrupt()
             receiveMsgThread.interrupt()

@@ -1,7 +1,7 @@
 package filesyncer.server
 
 import filesyncer.common.file.FSFileMetaData
-:import java.io.File
+import java.io.File
 
 class FSServerFileManager(val serverFolder: File = File(System.getProperty("user.home"))) {
     val repoRoot = serverFolder.resolve("FsServerRepo")
