@@ -1,5 +1,7 @@
 package filesyncer.client
 
+import filesyncer.common.file.FSFileMetaData
+
 /** Interface that client should provide to ui class. */
 interface FSClientFrontInterface {
     /**
@@ -69,4 +71,7 @@ interface FSClientFrontInterface {
 
     /** Get User registered in server */
     fun listUsers(): List<String>
+
+    /** Request file share */
+    fun shareFile(metadata: FSFileMetaData)
 }

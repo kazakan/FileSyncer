@@ -466,5 +466,9 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
             override fun listUsers(): List<String> {
                 return getUserList()
             }
+
+            override fun shareFile(metadata: FSFileMetaData) {
+                TODO("Not yet implemented")
+            }
         }
 }
