@@ -3,6 +3,7 @@ package filesyncer.server
 import filesyncer.common.FSLogicalClock
 import filesyncer.common.FSUser
 import filesyncer.common.FSUserManager
+import filesyncer.common.file.FSFileMetaData
 import filesyncer.common.file.FSFileTransfer
 import java.io.File
 import java.net.ServerSocket
@@ -55,20 +56,30 @@ class FSServer(
         while (running) {
             val socket = ss.accept()
             val socketInputStream = socket.getInputStream()
+            val socketOutputStream = socket.getOutputStream()
 
+            // get client file metadata
             val metaDataMsg = fileTransfer.receiveMetaData(socketInputStream)
             val metaData = metaDataMsg.toFileMetaData()
             val requester = metaDataMsg.requester
+
+            val serverMetadata = fileManager.getNewestMetaData(metaData) ?: FSFileMetaData()
             fileManager.saveMetaData(metaData)
 
+            // send metadata
+            fileTransfer.sendMetaData("", serverMetadata, socketOutputStream)
+
+            // TODO("get client decision")
+
+            // receive file
             val file = fileManager.getFile(metaData)
             val fileOutputStream = file.outputStream()
 
             fileOutputStream.use { socketInputStream.copyTo(it) }
 
-            // TODO : specify message
+            // broadcast
             broadcast(
-                FSEventMessage(EventType.FILE_MODIFY, metaData.name, metaData.md5),
+                FSEventMessage(EventType.FILE_MODIFY, *metaData.toStringArray()),
                 metaData.shared + metaData.owner
             )
         }
@@ -83,7 +94,7 @@ class FSServer(
             val socketInputStream = socket.getInputStream()
             val socketOutputStream = socket.getOutputStream()
 
-            // get which file client wants
+            // get client meta data
             val metaDataMsg = fileTransfer.receiveMetaData(socketInputStream)
             val metaData = metaDataMsg.toFileMetaData()
             val requester = metaDataMsg.requester
@@ -93,8 +104,12 @@ class FSServer(
             val file = fileManager.getFile(newestMetaData)
             val fileInputStream = file.inputStream()
 
-            // send
+            // send metadata
             fileTransfer.sendMetaData("", newestMetaData, socketOutputStream)
+
+            // TODO("get client decision")
+
+            // send file
             socketOutputStream.use { fileInputStream.copyTo(it) }
         }
     }
