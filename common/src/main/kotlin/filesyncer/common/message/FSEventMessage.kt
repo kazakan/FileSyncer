@@ -3,7 +3,11 @@ package message
 import filesyncer.common.message.FSMessage
 import java.nio.ByteBuffer
 
-class FSEventMessage(eventCode: Int = EventType.NONE, vararg messages: String) : FSMessage() {
+class FSEventMessage(
+    eventCode: Int = EventType.NONE,
+    timeStamp: Long = 0L,
+    vararg messages: String
+) : FSMessage() {
 
     object EventType {
         const val NONE: Int = 0 // empty messsage
@@ -34,17 +38,20 @@ class FSEventMessage(eventCode: Int = EventType.NONE, vararg messages: String) :
     }
 
     var mEventcode = eventCode
+    var mTimeStamp = timeStamp
 
     var messageField = FSVarLenStringListField(*messages)
 
     override fun marshallBody() {
         mBytebuffer!!.putInt(mEventcode)
+        mBytebuffer!!.putLong(mTimeStamp)
 
         messageField.marshall(mBytebuffer!!)
     }
 
     override fun unmarshallBody(byteBuffer: ByteBuffer) {
         this.mEventcode = byteBuffer.getInt()
+        this.mTimeStamp = byteBuffer.getLong()
 
         messageField.unmarshall(byteBuffer)
     }
@@ -52,6 +59,7 @@ class FSEventMessage(eventCode: Int = EventType.NONE, vararg messages: String) :
     override fun getByteNums(): Int {
         var ret = super.getByteNums()
         ret += Int.SIZE_BYTES // mEventCode
+        ret += Long.SIZE_BYTES // mTimeStamp
 
         ret += messageField.getByteNums()
 
