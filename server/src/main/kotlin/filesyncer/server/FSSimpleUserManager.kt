@@ -101,4 +101,8 @@ class FSSimpleUserManager(
     fun findUserById(id: String): FSUser? {
         return users[id]
     }
+
+    override fun getUserNames(): List<String> {
+        return users.keys.toList()
+    }
 }

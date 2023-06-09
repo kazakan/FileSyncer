@@ -118,6 +118,15 @@ class FSServerSideSession(
                             meta.fromStringArray(msg.messageField.strs.toTypedArray())
                             fileManager.delete(meta)
                         }
+                        EventType.LIST_USER_REQUEST -> {
+                            connWorker.putMsgToSendQueue(
+                                FSEventMessage(
+                                    EventType.LIST_USER_RESPONSE,
+                                    clock.get(),
+                                    *userManager.getUserNames().toTypedArray()
+                                )
+                            )
+                        }
                         else -> {
                             // TODO("Do nothing.")
                         }

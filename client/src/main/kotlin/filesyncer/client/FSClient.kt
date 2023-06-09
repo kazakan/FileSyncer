@@ -32,6 +32,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
     private var waitingRegisterRequest = FSRequestFsm()
     private var waitingListFolderRequest = FSRequestFsm()
     private var waitingSyncRequest = FSRequestFsm()
+    private var waitingListUserRequest = FSRequestFsm()
 
     private var _id = ""
     private var _passwd = ""
@@ -47,6 +48,8 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
     private var _cloudFileLists = mutableListOf<FSFileMetaData>()
 
     private var fileManager: FSClientFileManager? = null
+
+    private var _userList: List<String> = emptyList()
 
     fun start() {
 
@@ -148,6 +151,10 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
                     )
                     download(cloudMetaData, localFilePath)
                 }
+            }
+            EventType.LIST_USER_RESPONSE -> {
+                _userList = msg.messageField.strs
+                waitingListUserRequest.grant()
             }
             else -> {
                 // TODO("Raise error or ..")
@@ -290,6 +297,20 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
                 TODO("upload")
             }
         }
+    }
+
+    private fun getUserList(): List<String> {
+        try {
+            runner!!.putMsgToSendQueue(
+                FSEventMessage(EventType.LIST_USER_REQUEST, logicalClock.get())
+            )
+        } catch (e: Exception) {
+            return emptyList()
+        }
+
+        waitingLoginRequest.waitLock()
+
+        return _userList
     }
 
     val frontInterface =
@@ -440,6 +461,10 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
 
             override fun takeReportMessage(): String? {
                 return _reportMsgQueue.poll()
+            }
+
+            override fun listUsers(): List<String> {
+                return getUserList()
             }
         }
 }

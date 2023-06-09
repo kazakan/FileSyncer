@@ -35,6 +35,9 @@ class FSEventMessage(
         const val FILE_DELETE: Int = 19 // Tell file deleted, (filename)
         const val FILE_MODIFY: Int = 20 // Tell file modified (filename, md5)
         const val SYNC: Int = 21 // Sync logical clock
+
+        const val LIST_USER_REQUEST: Int = 22 // Request User List
+        const val LIST_USER_RESPONSE: Int = 23 // Response for LIST_USER_REQUEST
     }
 
     var mEventcode = eventCode

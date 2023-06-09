@@ -66,4 +66,7 @@ interface FSClientFrontInterface {
      * @return message to show
      */
     fun takeReportMessage(): String?
+
+    /** Get User registered in server */
+    fun listUsers(): List<String>
 }
