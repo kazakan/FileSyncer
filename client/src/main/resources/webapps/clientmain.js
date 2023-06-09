@@ -145,4 +145,7 @@ function getReportMessage() {
 function onLoad() {
     getFileList("/");
     setInterval(getReportMessage, 1000);
+    setInterval(function () {
+        getFileList("");
+    }, 4000);
 }
