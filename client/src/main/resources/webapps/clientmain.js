@@ -91,17 +91,24 @@ function getFileList(dir) {
                     row +=
                         '<button style="float:right;" disabled="">download</button>';
 
-                    // add to upload list button
+                    //select button
                     row +=
                         "<button onclick=\"addToUploadList('" +
                         result[i]["name"] +
                         '\')" style="float:right;" ';
                     if (!isLocal) row += 'disabled=""';
                     row += ">Select</button>";
+
+                    // status text
                     row +=
                         '<span style="float:right; margin-right:5px;">' +
                         result[i]["status"] +
                         "</span>";
+
+                    // share button
+                    row += '<button style="float: right; margin-right: 5px';
+                    row += 'onclick = "openShareDialogue()"';
+                    row += ">Share</button>";
 
                     row += "</div> \n";
                     element.innerHTML += row;
@@ -140,6 +147,18 @@ function getReportMessage() {
             addReportMessage(msgList[i]);
         }
     });
+}
+
+function openShareDialogue() {
+    var dialoguePage = document.getElementById("share-dialogue-page");
+    dialoguePage.classList.remove("hide");
+    dialoguePage.classList.add("full");
+}
+
+function closeShareDialogue() {
+    var dialoguePage = document.getElementById("share-dialogue-page");
+    dialoguePage.classList.remove("full");
+    dialoguePage.classList.add("hide");
 }
 
 function onLoad() {

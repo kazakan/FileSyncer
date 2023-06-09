@@ -12,6 +12,29 @@
             html,
             body {
                 height: 100%;
+                width: 100%;
+                position: relative;
+            }
+
+            #main-page {
+                position: absolute;
+                top: 0;
+                left: 0;
+
+                height: 100%;
+                width: 100%;
+            }
+
+            #share-dialogue-page {
+                position: absolute;
+
+                top: 0;
+                left: 0;
+                overflow: hidden;
+
+                width: 100%;
+                z-index: 10;
+                background-color: #ffffff99;
             }
 
             .upper-container {
@@ -65,36 +88,81 @@
                 margin: 5px;
                 overflow: scroll;
             }
+
+            .full {
+                height: 100%;
+                width: 100%;
+                display: block;
+            }
+
+            .hide {
+                display: none;
+            }
+
+            #share-dialogue {
+                border-style: solid;
+                margin: 15% 10%;
+                padding: 5%;
+                background-color: #ffffff;
+            }
         </style>
     </head>
     <body onload="onLoad()">
-        <h1>File Syncer Client Web interface</h1>
-        <div class="upper-container">
-            <div id="file-list">
-                <div class="row">
-                    file name
-                    <button style="float: right">download</button>
-                    <button
-                        style="float: right"
-                        onclick="addToUploadList('filename')"
-                    >
-                        Select
-                    </button>
-                    <span style="float: right; margin-right: 5px"
-                        >Uploaded</span
-                    >
+        <div id="main-page" class="full">
+            <h1>File Syncer Client Web interface</h1>
+            <div class="upper-container">
+                <div id="file-list">
+                    <div class="row">
+                        file name
+                        <button style="float: right">download</button>
+                        <button
+                            style="float: right"
+                            onclick="addToUploadList('filename')"
+                        >
+                            Select
+                        </button>
+                        <span style="float: right; margin-right: 5px"
+                            >Uploaded</span
+                        >
+                        <button
+                            style="float: right; margin-right: 5px"
+                            onclick="openShareDialogue()"
+                        >
+                            Share
+                        </button>
+                    </div>
+                </div>
+                <div id="right-panel">
+                    <div id="report-list"></div>
+
+                    <div id="upload-list"></div>
                 </div>
             </div>
-            <div id="right-panel">
-                <div id="report-list"></div>
-
-                <div id="upload-list"></div>
+            <div>
+                <button onclick="disconnect()">Disconnect</button>
+                <button onclick="getFileList('')">Refresh</button>
+                <button onclick="upload()">Upload</button>
             </div>
         </div>
-        <div>
-            <button onclick="disconnect()">Disconnect</button>
-            <button onclick="getFileList('')">Refresh</button>
-            <button onclick="upload()">Upload</button>
+
+        <div id="share-dialogue-page" class="hide">
+            <div id="share-dialogue">
+                <h1>Select User to share.</h1>
+
+                <input type="checkbox" id="user1" name="scales" checked />
+                <label for="user1">user1</label>
+
+                <input type="checkbox" id="user2" name="scales" checked />
+                <label for="user1">user1</label>
+
+                <input type="checkbox" id="user3" name="scales" checked />
+                <label for="user1">user1</label>
+
+                <br />
+                <br />
+
+                <button onclick="closeShareDialogue()">Close</button>
+            </div>
         </div>
     </body>
 </html>
