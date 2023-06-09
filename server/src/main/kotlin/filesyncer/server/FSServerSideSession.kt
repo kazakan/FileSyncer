@@ -24,6 +24,7 @@ class FSServerSideSession(
                 override fun handleMessage(msg: FSEventMessage) {
                     if (verbose)
                         println("Got Msg with Code=${msg.mEventcode}, msg=${msg.messageField.strs}")
+                    clock.sync(msg.mTimeStamp)
                     when (msg.mEventcode) {
                         EventType.ANSWER_ALIVE -> {}
                         EventType.LOGIN_REQUEST -> {
@@ -104,15 +105,11 @@ class FSServerSideSession(
 
                             if (verbose) println("List folder request handled.")
                             connWorker.putMsgToSendQueue(
-                                FSEventMessage(EventType.LISTFOLDER_RESPONSE, *array)
+                                FSEventMessage(EventType.LISTFOLDER_RESPONSE, clock.get(), *array)
                             )
                         }
                         EventType.SYNC -> {
-                            val clientTime = msg.messageField.strs[0].toLong()
-                            clock.sync(clientTime)
-                            connWorker.putMsgToSendQueue(
-                                FSEventMessage(EventType.SYNC, "${clock.get()}")
-                            )
+                            connWorker.putMsgToSendQueue(FSEventMessage(EventType.SYNC, clock.time))
                         }
                         EventType.FILE_DELETE -> {
                             val meta = FSFileMetaData()

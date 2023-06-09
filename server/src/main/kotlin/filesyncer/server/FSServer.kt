@@ -79,7 +79,11 @@ class FSServer(
 
             // broadcast
             broadcast(
-                FSEventMessage(EventType.FILE_MODIFY, *metaData.toStringArray()),
+                FSEventMessage(
+                    EventType.FILE_MODIFY,
+                    logicalClock.get(),
+                    *metaData.toStringArray()
+                ),
                 metaData.shared + metaData.owner
             )
         }
@@ -162,12 +166,16 @@ class FSServer(
 
     // when a user's session is removed, alert it to all clients.
     override fun onUserSessionRemoved(user: FSUser) {
-        this@FSServer.broadcast(FSEventMessage(EventType.BROADCAST_DISCONNECTED, user.id))
+        this@FSServer.broadcast(
+            FSEventMessage(EventType.BROADCAST_DISCONNECTED, logicalClock.get(), user.id)
+        )
     }
 
     // when a user's session is added, alert it to all clients.
     override fun onUserSessionAdded(user: FSUser) {
-        this@FSServer.broadcast(FSEventMessage(EventType.BROADCAST_CONNECTED, user.id))
+        this@FSServer.broadcast(
+            FSEventMessage(EventType.BROADCAST_CONNECTED, logicalClock.get(), user.id)
+        )
     }
 
     override fun broadcast(msg: FSEventMessage, users: List<String>) {

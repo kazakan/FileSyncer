@@ -71,6 +71,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
 
     override fun handleMessage(msg: FSEventMessage) {
         println("client code = ${msg.mEventcode}, msg: ${msg.messageField.strs}")
+        logicalClock.sync(msg.mTimeStamp)
         when (msg.mEventcode) {
             EventType.LOGIN_GRANTED -> {
                 waitingLoginRequest.grant()
@@ -111,14 +112,16 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
                 }
             }
             EventType.SYNC -> {
-                val serverClockValue = msg.messageField.strs[0].toLong()
-                logicalClock.sync(serverClockValue)
                 waitingSyncRequest.grant()
             }
             EventType.FILE_CREATE -> {
                 // TODO : download from server
                 runner!!.putMsgToSendQueue(
-                    FSEventMessage(EventType.DOWNLOAD_REQUEST, msg.messageField.strs[0])
+                    FSEventMessage(
+                        EventType.DOWNLOAD_REQUEST,
+                        logicalClock.get(),
+                        msg.messageField.strs[0]
+                    )
                 )
             }
             EventType.FILE_DELETE -> {
@@ -135,7 +138,11 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
                 if (localMd5 != cloudMetaData.md5) {
                     // TODO : check collision
                     runner!!.putMsgToSendQueue(
-                        FSEventMessage(EventType.DOWNLOAD_REQUEST, msg.messageField.strs[0])
+                        FSEventMessage(
+                            EventType.DOWNLOAD_REQUEST,
+                            logicalClock.get(),
+                            msg.messageField.strs[0]
+                        )
                     )
                     download(cloudMetaData, localFilePath)
                 }
@@ -164,13 +171,15 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
             fileManager!!.saveMetaData(metaData)
 
             upload(name)
-            runner!!.putMsgToSendQueue(FSEventMessage(EventType.FILE_CREATE, name))
+            runner!!.putMsgToSendQueue(
+                FSEventMessage(EventType.FILE_CREATE, logicalClock.get(), name)
+            )
         } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
             println("${name} removed")
             // tell delete
             val metaData = fileManager!!.getMetaData(name)!!
             runner!!.putMsgToSendQueue(
-                FSEventMessage(EventType.FILE_DELETE, *metaData.toStringArray())
+                FSEventMessage(EventType.FILE_DELETE, logicalClock.get(), *metaData.toStringArray())
             )
             fileManager!!.deleteMetaData(metaData)
         } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
@@ -191,14 +200,16 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
 
             upload(name)
 
-            runner!!.putMsgToSendQueue(FSEventMessage(EventType.FILE_MODIFY, name))
+            runner!!.putMsgToSendQueue(
+                FSEventMessage(EventType.FILE_MODIFY, logicalClock.get(), name)
+            )
         }
     }
 
     fun syncLogicalClock() {
         logicalClock.get()
         try {
-            runner!!.putMsgToSendQueue(FSEventMessage(EventType.SYNC, "${logicalClock.time}"))
+            runner!!.putMsgToSendQueue(FSEventMessage(EventType.SYNC, logicalClock.get()))
         } catch (e: Exception) {
             return
         }
@@ -315,7 +326,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
                 try {
 
                     runner!!.putMsgToSendQueue(
-                        FSEventMessage(EventType.LOGIN_REQUEST, id, password)
+                        FSEventMessage(EventType.LOGIN_REQUEST, logicalClock.get(), id, password)
                     )
                 } catch (e: Exception) {
 
@@ -360,7 +371,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
 
                 try {
                     runner!!.putMsgToSendQueue(
-                        FSEventMessage(EventType.REGISTER_REQUEST, id, password)
+                        FSEventMessage(EventType.REGISTER_REQUEST, logicalClock.get(), id, password)
                     )
                 } catch (e: Exception) {
                     return false
@@ -381,7 +392,9 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
             override fun showFolder(dir: String): List<Map<String, String>> {
 
                 try {
-                    runner!!.putMsgToSendQueue(FSEventMessage(EventType.LISTFOLDER_REQUEST, _id))
+                    runner!!.putMsgToSendQueue(
+                        FSEventMessage(EventType.LISTFOLDER_REQUEST, logicalClock.get(), _id)
+                    )
                 } catch (e: Exception) {
                     return emptyList()
                 }
@@ -414,7 +427,9 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
             }
 
             override fun disconnect() {
-                runner?.putMsgToSendQueue(FSEventMessage(EventType.LOGOUT, _id, _passwd))
+                runner?.putMsgToSendQueue(
+                    FSEventMessage(EventType.LOGOUT, logicalClock.get(), _id, _passwd)
+                )
                 runner?.stop()
                 fileTransfer = null
 
