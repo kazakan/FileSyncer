@@ -1,6 +1,7 @@
 package filesyncer.server
 
 import filesyncer.common.*
+import filesyncer.common.file.FSFileMetaData
 import java.io.File
 import java.net.Socket
 import message.FSEventMessage
@@ -112,6 +113,11 @@ class FSServerSideSession(
                             connWorker.putMsgToSendQueue(
                                 FSEventMessage(EventType.SYNC, "${clock.get()}")
                             )
+                        }
+                        EventType.FILE_DELETE -> {
+                            val meta = FSFileMetaData()
+                            meta.fromStringArray(msg.messageField.strs.toTypedArray())
+                            fileManager.delete(meta)
                         }
                         else -> {
                             // TODO("Do nothing.")
