@@ -23,7 +23,9 @@ class FSServerSideSession(
             object : FSEventMessageHandler {
                 override fun handleMessage(msg: FSEventMessage) {
                     if (verbose)
-                        println("Got Msg with Code=${msg.mEventcode}, msg=${msg.messageField.strs}")
+                        println(
+                            "Got Msg with Code=${msg.mEventcode}, timeStamp=${msg.mTimeStamp}, msg=${msg.messageField.strs}"
+                        )
                     clock.sync(msg.mTimeStamp)
                     when (msg.mEventcode) {
                         EventType.ANSWER_ALIVE -> {}

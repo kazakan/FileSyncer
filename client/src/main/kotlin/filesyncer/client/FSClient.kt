@@ -70,7 +70,9 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
     }
 
     override fun handleMessage(msg: FSEventMessage) {
-        println("client code = ${msg.mEventcode}, msg: ${msg.messageField.strs}")
+        println(
+            "client code = ${msg.mEventcode}, timeStamp=${msg.mTimeStamp} msg: ${msg.messageField.strs}"
+        )
         logicalClock.sync(msg.mTimeStamp)
         when (msg.mEventcode) {
             EventType.LOGIN_GRANTED -> {
