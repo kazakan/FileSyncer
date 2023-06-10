@@ -308,7 +308,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
             return emptyList()
         }
 
-        waitingLoginRequest.waitLock()
+        waitingListUserRequest.waitLock()
 
         return _userList
     }
