@@ -36,4 +36,24 @@ data class FSFileMetaData(
         val line = file.readLines()[0]
         fromStringArray(line.split("\t").toTypedArray())
     }
+
+    fun toMap(): Map<String, String> {
+        return mapOf(
+            "name" to name,
+            "fileSize" to "$fileSize",
+            "timeStamp" to "$timeStamp",
+            "md5" to md5,
+            "owner" to owner,
+            "shared" to shared.joinToString("/")
+        )
+    }
+
+    fun fromMap(map: Map<String, String>) {
+        name = map["name"]!!
+        fileSize = map["fileSize"]!!.toLong()
+        timeStamp = map["timeStamp"]!!.toLong()
+        md5 = map["md5"]!!
+        owner = map["owner"]!!
+        shared = map["shared"]!!.split("/")
+    }
 }

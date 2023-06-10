@@ -425,22 +425,15 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
                 waitingListFolderRequest.waitLock()
                 waitingListFolderRequest.reset()
 
-                val cloudFiles: List<String> = _cloudFileLists.map { it.name }
-                val _localFileLists: List<String> = fileManager!!.metaDataMap.values.map { it.name }
+                // val cloudFiles: List<FSFileMetaData> = _cloudFileLists.map { it.name }
+                // val _localFileLists: List<FSFileMetaData> =
+                // fileManager!!.metaDataMap.values.toList()
 
-                val lists = HashSet(_localFileLists + cloudFiles).toTypedArray()
-                lists.sort()
-                val localSet = HashSet(_localFileLists)
-                val cloudSet = HashSet(cloudFiles)
-                val data =
-                    lists.map {
-                        val inLocal = localSet.contains(it)
-                        val inCloud = cloudSet.contains(it)
-                        val status =
-                            if (inLocal) if (inCloud) "Both" else "Local Only"
-                            else if (inCloud) "Cloud Only" else "ERR"
-                        mapOf("name" to it, "status" to status, "type" to "file")
-                    }
+                // val lists = HashSet(_localFileLists + cloudFiles).toTypedArray()
+                // lists.sort()
+                // val localSet = HashSet(_localFileLists)
+                // val cloudSet = HashSet(cloudFiles)
+                val data = _cloudFileLists.map { it.toMap() }
                 return data
             }
 

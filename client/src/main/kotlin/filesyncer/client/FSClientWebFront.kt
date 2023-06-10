@@ -242,10 +242,8 @@ class FSClientWebFront(val client: FSClientFrontInterface, val port: Int = 8080)
             resp.characterEncoding = "UTF-8"
 
             val userNames = client.listUsers()
-
-            // TODO("implement")
             val writer = resp.writer
-            writer.write("some what message\n")
+            writer.write(userNames.joinToString("\t"))
 
             resp.writer.flush()
         }
