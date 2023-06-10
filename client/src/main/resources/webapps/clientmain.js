@@ -1,5 +1,9 @@
 uploadList = [];
 
+fileList = [];
+
+userList = [];
+
 function uploadFile(path) {
     var params = new URLSearchParams();
     params.append("fname", path);
@@ -71,6 +75,7 @@ function getFileList(dir) {
         (response) => {
             var element = document.getElementById("file-list");
             var result = response.data;
+            fileList = result;
 
             console.log(result[0]);
 
@@ -78,31 +83,12 @@ function getFileList(dir) {
 
             if (result.length > 0) {
                 for (var i = 0; i < result.length; ++i) {
-                    var isLocal =
-                        result[i]["status"] == "Both" ||
-                        result[i]["status"] == "Local Only";
-                    var isCloud =
-                        result[i]["status"] == "Both" ||
-                        result[i]["status"] == "Cloud Only";
-
                     var row = '<div class="row">' + result[i]["name"];
 
-                    // download button
-                    row +=
-                        '<button style="float:right;" disabled="">download</button>';
-
-                    //select button
-                    row +=
-                        "<button onclick=\"addToUploadList('" +
-                        result[i]["name"] +
-                        '\')" style="float:right;" ';
-                    if (!isLocal) row += 'disabled=""';
-                    row += ">Select</button>";
-
-                    // status text
+                    // owner text
                     row +=
                         '<span style="float:right; margin-right:5px;">' +
-                        result[i]["status"] +
+                        result[i]["owner"] +
                         "</span>";
 
                     // share button
@@ -131,6 +117,25 @@ function disconnect() {
             alert("Something went wrong during disconnecting TT");
         }
     );
+}
+
+function getShareableUsers(fname) {
+    var fileInfo = null;
+    for (var i = 0; i < fileList.length; ++i) {
+        if (fileList[i]["name"] == fname) {
+            fileInfo = fileList[i];
+            break;
+        }
+    }
+
+    if (fileInfo == null) return null;
+}
+
+/** Get user registered in server.*/
+async function getUserList() {
+    var response = await axios.get("/api/listUser", {});
+    messages = response.data;
+    userList = messages.split("\t");
 }
 
 function addReportMessage(msg) {
