@@ -26,7 +26,7 @@ class FSServerFileManager(val serverFolder: File = File(System.getProperty("user
                 val metaData = loadMetaData(file)
                 share(metaData, metaData.owner)
                 for (sharedUser in metaData.shared) {
-                    share(metaData, metaData.owner)
+                    share(metaData, sharedUser)
                 }
             }
         }
@@ -76,6 +76,9 @@ class FSServerFileManager(val serverFolder: File = File(System.getProperty("user
         val savePath = getMetaDataFile(metaData)
 
         share(metaData, metaData.owner)
+        for (sharedUser in metaData.shared) {
+            share(metaData, sharedUser)
+        }
 
         metaData.write(savePath)
     }

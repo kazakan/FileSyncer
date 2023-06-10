@@ -38,6 +38,8 @@ class FSEventMessage(
 
         const val LIST_USER_REQUEST: Int = 22 // Request User List
         const val LIST_USER_RESPONSE: Int = 23 // Response for LIST_USER_REQUEST
+
+        const val SHARE_FILE: Int = 24 // share file request.
     }
 
     var mEventcode = eventCode

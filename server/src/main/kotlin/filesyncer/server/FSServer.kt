@@ -39,6 +39,7 @@ class FSServer(
                     repoDir,
                     logicalClock,
                     fileManager,
+                    this,
                     verbose
                 )
             if (verbose) {

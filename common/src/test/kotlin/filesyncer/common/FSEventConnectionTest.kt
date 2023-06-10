@@ -68,9 +68,9 @@ class FSEventConnectionTest {
     @Test
     fun testVarLenMessageSendAndReceive() {
         val PORT = 5000
-        val msg1 = FSEventMessage(EventType.BROADCAST_CONNECTED, "aaaaa", "bbbb")
-        val msg2 = FSEventMessage(EventType.BROADCAST_CONNECTED, "bbbbb")
-        val msg3 = FSEventMessage(EventType.BROADCAST_CONNECTED, *arrayOf("aaa", "bbb"))
+        val msg1 = FSEventMessage(EventType.BROADCAST_CONNECTED, 1, "aaaaa", "bbbb")
+        val msg2 = FSEventMessage(EventType.BROADCAST_CONNECTED, 2, "bbbbb")
+        val msg3 = FSEventMessage(EventType.BROADCAST_CONNECTED, 3, *arrayOf("aaa", "bbb"))
 
         var runClient = Runnable {
             var client = Socket("localhost", PORT)

@@ -13,6 +13,7 @@ class FSServerSideSession(
     val repoDir: File,
     val clock: FSLogicalClock,
     val fileManager: FSServerFileManager,
+    val broadcaster: FSMessageBroadcaster<FSEventMessage>,
     verbose: Boolean = false
 ) : FSSession(socket, verbose) {
 
@@ -116,6 +117,14 @@ class FSServerSideSession(
                         EventType.FILE_DELETE -> {
                             val meta = FSFileMetaData()
                             meta.fromStringArray(msg.messageField.strs.toTypedArray())
+                            broadcaster.broadcast(
+                                FSEventMessage(
+                                    EventType.FILE_DELETE,
+                                    clock.get(),
+                                    *meta.toStringArray()
+                                ),
+                                meta.shared.plus(meta.owner)
+                            )
                             fileManager.delete(meta)
                         }
                         EventType.LIST_USER_REQUEST -> {
@@ -125,6 +134,19 @@ class FSServerSideSession(
                                     clock.get(),
                                     *userManager.getUserNames().toTypedArray()
                                 )
+                            )
+                        }
+                        EventType.SHARE_FILE -> {
+                            val meta = FSFileMetaData()
+                            meta.fromStringArray(msg.messageField.strs.toTypedArray())
+                            fileManager.saveMetaData(meta)
+                            broadcaster.broadcast(
+                                FSEventMessage(
+                                    EventType.FILE_MODIFY,
+                                    clock.get(),
+                                    *meta.toStringArray()
+                                ),
+                                meta.shared.plus(meta.owner)
                             )
                         }
                         else -> {

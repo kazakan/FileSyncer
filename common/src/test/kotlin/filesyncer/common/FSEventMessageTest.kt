@@ -22,7 +22,7 @@ class FSEventMessageTest {
         assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
 
         // With MESSAGE
-        msg = FSEventMessage(EventType.LOGIN_REQUEST, "ididid", "passwspassws")
+        msg = FSEventMessage(EventType.LOGIN_REQUEST, 1, "ididid", "passwspassws")
         reconstructedMsg = FSEventMessage()
         byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -36,7 +36,7 @@ class FSEventMessageTest {
 
     @Test
     fun testNONE() {
-        val msg = FSEventMessage(EventType.NONE, "ididid", "passwspassws", "extrastr")
+        val msg = FSEventMessage(EventType.NONE, 1, "ididid", "passwspassws", "extrastr")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -49,7 +49,7 @@ class FSEventMessageTest {
 
     @Test
     fun testLoginRequest() {
-        val msg = FSEventMessage(EventType.LOGIN_REQUEST, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.LOGIN_REQUEST, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -62,7 +62,7 @@ class FSEventMessageTest {
 
     @Test
     fun testLoginGranted() {
-        val msg = FSEventMessage(EventType.LOGIN_GRANTED, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.LOGIN_GRANTED, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -75,7 +75,7 @@ class FSEventMessageTest {
 
     @Test
     fun testLoginRejected() {
-        val msg = FSEventMessage(EventType.LOGIN_REJECTED, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.LOGIN_REJECTED, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -88,7 +88,7 @@ class FSEventMessageTest {
 
     @Test
     fun testLogout() {
-        val msg = FSEventMessage(EventType.LOGOUT, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.LOGOUT, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -101,7 +101,7 @@ class FSEventMessageTest {
 
     @Test
     fun testBroadcastConnected() {
-        val msg = FSEventMessage(EventType.BROADCAST_CONNECTED, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.BROADCAST_CONNECTED, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -114,7 +114,7 @@ class FSEventMessageTest {
 
     @Test
     fun testBroadcastDisconnected() {
-        val msg = FSEventMessage(EventType.BROADCAST_DISCONNECTED, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.BROADCAST_DISCONNECTED, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -127,7 +127,7 @@ class FSEventMessageTest {
 
     @Test
     fun testUploadDone() {
-        val msg = FSEventMessage(EventType.UPLOAD_DONE, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.UPLOAD_DONE, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -140,7 +140,7 @@ class FSEventMessageTest {
     @Test
     fun testListFolderRequest() {
         val list = arrayListOf("aaa", "bbb", "ccc")
-        val msg = FSEventMessage(EventType.LISTFOLDER_REQUEST, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.LISTFOLDER_REQUEST, 1, "ididid", "passwspassws")
         msg.messageField = FSVarLenStringListField(list)
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
@@ -155,7 +155,7 @@ class FSEventMessageTest {
     @Test
     fun testListFolderResponse() {
         val list = arrayListOf("aaa", "bbb", "ccc")
-        val msg = FSEventMessage(EventType.LISTFOLDER_RESPONSE, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.LISTFOLDER_RESPONSE, 1, "ididid", "passwspassws")
         msg.messageField = FSVarLenStringListField(list)
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
@@ -169,7 +169,7 @@ class FSEventMessageTest {
 
     @Test
     fun testRegisterRequest() {
-        val msg = FSEventMessage(EventType.REGISTER_REQUEST, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.REGISTER_REQUEST, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -182,7 +182,7 @@ class FSEventMessageTest {
 
     @Test
     fun testRegisterGranted() {
-        val msg = FSEventMessage(EventType.REGISTER_GRANTED, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.REGISTER_GRANTED, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -195,7 +195,7 @@ class FSEventMessageTest {
 
     @Test
     fun testRegisterRejected() {
-        val msg = FSEventMessage(EventType.REGISTER_GRANTED, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.REGISTER_GRANTED, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)

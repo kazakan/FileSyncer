@@ -138,6 +138,10 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
                 cloudMetaData.fromStringArray(msg.messageField.strs.toTypedArray())
 
                 val localFilePath = fileManager!!.localFolder.resolve(cloudMetaData.name)
+                if (!localFilePath.exists()) {
+                    download(cloudMetaData, localFilePath)
+                    return
+                }
                 val localMd5 = FSFileHash.md5(localFilePath)
 
                 if (localMd5 != cloudMetaData.md5) {
@@ -261,14 +265,14 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
 
         // download cloud metadata
         val fileOutputStream = file.outputStream()
-        val metadata = fileTransfer!!.receiveMetaData(socketInputStream).toFileMetaData()
+        val cloudMetadata = fileTransfer!!.receiveMetaData(socketInputStream).toFileMetaData()
         // TODO("Check collision")
 
         // download file
         fileOutputStream.use { socketInputStream.copyTo(it) }
 
-        fileManager!!.registerMetaData(metadata)
-        fileManager!!.saveMetaData(metadata)
+        fileManager!!.registerMetaData(cloudMetadata)
+        fileManager!!.saveMetaData(cloudMetadata)
 
         fileOutputStream.close()
         socket.close()
@@ -461,7 +465,15 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
             }
 
             override fun shareFile(metadata: FSFileMetaData) {
-                // TODO("Not yet implemented")
+                fileManager!!.registerMetaData(metadata)
+                fileManager!!.saveMetaData(metadata)
+                runner?.putMsgToSendQueue(
+                    FSEventMessage(
+                        EventType.SHARE_FILE,
+                        logicalClock.get(),
+                        *metadata.toStringArray()
+                    )
+                )
             }
         }
 }
