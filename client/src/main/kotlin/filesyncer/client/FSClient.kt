@@ -461,7 +461,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
             }
 
             override fun shareFile(metadata: FSFileMetaData) {
-                TODO("Not yet implemented")
+                // TODO("Not yet implemented")
             }
         }
 }

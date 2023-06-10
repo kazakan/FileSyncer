@@ -242,8 +242,7 @@ class FSClientWebFront(val client: FSClientFrontInterface, val port: Int = 8080)
             resp.characterEncoding = "UTF-8"
 
             val userNames = client.listUsers()
-            val writer = resp.writer
-            writer.write(userNames.joinToString("\t"))
+            resp.writer.write(userNames.joinToString("\t"))
 
             resp.writer.flush()
         }
@@ -258,6 +257,12 @@ class FSClientWebFront(val client: FSClientFrontInterface, val port: Int = 8080)
             val fname = req.getParameter("fname")
 
             val metaData = FSFileMetaData()
+            metaData.name = req.getParameter("name")
+            metaData.fileSize = req.getParameter("fileSize").toLong()
+            metaData.timeStamp = req.getParameter("timeStamp").toLong()
+            metaData.md5 = req.getParameter("md5")
+            metaData.owner = req.getParameter("owner")
+            metaData.shared = req.getParameter("shared").split("/")
 
             client.shareFile(metaData)
 

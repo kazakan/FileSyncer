@@ -105,6 +105,10 @@
                 padding: 5%;
                 background-color: #ffffff;
             }
+
+            .chip {
+                display: inline-block;
+            }
         </style>
     </head>
     <body onload="onLoad()">
@@ -142,19 +146,21 @@
             <div id="share-dialogue">
                 <h1>Select User to share.</h1>
 
-                <input type="checkbox" id="user1" name="scales" checked />
-                <label for="user1">user1</label>
+                <div id="chip-container">
+                    <div class="chip">user1</div>
+                    <div class="chip">user1</div>
+                    <div class="chip">user1</div>
+                </div>
 
-                <input type="checkbox" id="user2" name="scales" checked />
-                <label for="user1">user1</label>
-
-                <input type="checkbox" id="user3" name="scales" checked />
-                <label for="user1">user1</label>
+                <label for="adduser">User to add : </label
+                ><input type="text" id="adduser" name="scales" />
+                <button onclick="addUserToShare()">add</button>
 
                 <br />
                 <br />
 
-                <button onclick="closeShareDialogue()">Close</button>
+                <button onclick="closeShareDialogue(true)">Close</button>
+                <button onclick="closeShareDialogue(false)">Cancel</button>
             </div>
         </div>
     </body>
