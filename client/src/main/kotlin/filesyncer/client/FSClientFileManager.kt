@@ -22,39 +22,10 @@ class FSClientFileManager(
                 it.isFile && it.name.endsWith(".$metaDataSuffix")
             }
 
-        val files = localFolder.listFiles()!!.filter { it.isFile }
-        val metaDataBasedOnLocal =
-            files.map { FSFileMetaData(it.name, it.length(), 0L, FSFileHash.md5(it)) }
-
         for (file in metaFiles) {
             val metaData = loadMetaData(file)
             registerMetaData(metaData)
         }
-
-        // comparison metadata and local files
-        val newFiles = mutableListOf<FSFileMetaData>()
-        val modifiedFiles = mutableListOf<FSFileMetaData>()
-        val removedFiles = mutableListOf<FSFileMetaData>()
-
-        for (meta in metaDataBasedOnLocal) {
-            if (meta.name in metaDataMap) {
-                if (meta.md5 != metaDataMap[meta.name]!!.md5) {
-                    modifiedFiles.add(metaDataMap[meta.name]!!)
-                }
-            } else {
-                meta.owner = user
-                newFiles.add(meta)
-            }
-        }
-
-        val localnameset = HashSet(metaDataBasedOnLocal.map { it.name })
-        for (metadataName in metaDataMap.keys) {
-            if (!localnameset.contains(metadataName)) {
-                removedFiles.add(metaDataMap[metadataName]!!)
-            }
-        }
-
-        // resolve
     }
 
     fun saveMetaData(metaData: FSFileMetaData) {

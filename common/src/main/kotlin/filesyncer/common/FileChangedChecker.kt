@@ -14,10 +14,17 @@ class FileWatcher(rootDir: Path) {
         fun onFileChanged(file: File, kind: WatchEvent.Kind<out Any>)
     }
 
-    val watchService = FileSystems.getDefault().newWatchService()
     var fileChangedListener: OnFileChangedListener? = null
 
     val checkerThread = Thread {
+        var watchService = FileSystems.getDefault().newWatchService()
+        rootDir.register(
+            watchService,
+            StandardWatchEventKinds.ENTRY_CREATE,
+            StandardWatchEventKinds.ENTRY_DELETE,
+            StandardWatchEventKinds.ENTRY_MODIFY
+        )
+
         while (true) {
             val key = watchService.take()
 
@@ -31,20 +38,22 @@ class FileWatcher(rootDir: Path) {
                 val ev: WatchEvent<Path> = event as WatchEvent<Path>
                 val path: Path = ev.context()
 
-                fileChangedListener?.onFileChanged(path.toFile(), kind)
+                try {
+                    fileChangedListener?.onFileChanged(path.toFile(), kind)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    watchService = FileSystems.getDefault().newWatchService()
+                    rootDir.register(
+                        watchService,
+                        StandardWatchEventKinds.ENTRY_CREATE,
+                        StandardWatchEventKinds.ENTRY_DELETE,
+                        StandardWatchEventKinds.ENTRY_MODIFY
+                    )
+                }
             }
 
             key.reset()
         }
-    }
-
-    init {
-        rootDir.register(
-            watchService,
-            StandardWatchEventKinds.ENTRY_CREATE,
-            StandardWatchEventKinds.ENTRY_DELETE,
-            StandardWatchEventKinds.ENTRY_MODIFY
-        )
     }
 
     fun run() {

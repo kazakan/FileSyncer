@@ -100,6 +100,6 @@ class FSServerFileManager(val serverFolder: File = File(System.getProperty("user
     }
 
     fun getNewestMetaData(metaData: FSFileMetaData): FSFileMetaData? {
-        return relation[metaData.owner]?.get(metaData.owner)
+        return relation[metaData.owner]?.get(metaData.name)
     }
 }

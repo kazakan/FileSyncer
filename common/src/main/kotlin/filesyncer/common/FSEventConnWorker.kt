@@ -25,7 +25,7 @@ open class FSEventConnWorker(
             val msg = eventSendQueue.take()
             if (!socket.isClosed) {
                 connection.sendMessage(msg)
-                if (verbose) println("Sent message ${msg.mEventcode}")
+                if (verbose) println("[MSG] Sent message ${msg.mEventcode}")
             }
         }
     }
@@ -37,7 +37,7 @@ open class FSEventConnWorker(
             }
         } catch (e: Exception) {
             if (verbose) {
-                println("Stopping FSEventConnworker due to socket is dead")
+                println("[CON] Stopping FSEventConnworker due to socket is dead")
                 e.printStackTrace()
             }
         } finally {
@@ -57,7 +57,6 @@ open class FSEventConnWorker(
     val handleMsgThread = Thread {
         while ((connection.isConnected() && !closeReserved) || !eventReceiveQueue.isEmpty()) {
             val msg = eventReceiveQueue.take()
-            if (verbose) println("Handling message ${msg.mEventcode}")
 
             if (eventHandler != null) eventHandler!!.handleMessage(msg)
         }

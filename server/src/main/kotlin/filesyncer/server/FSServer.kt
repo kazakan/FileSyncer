@@ -7,6 +7,7 @@ import filesyncer.common.file.FSFileMetaData
 import filesyncer.common.file.FSFileTransfer
 import java.io.File
 import java.net.ServerSocket
+import kotlin.concurrent.thread
 import message.FSEventMessage
 import message.FSEventMessage.EventType
 
@@ -44,7 +45,7 @@ class FSServer(
                 )
             if (verbose) {
                 println(
-                    "User tried make connection. IP : ${socket.inetAddress.hostAddress}, PORT : ${socket.port}"
+                    "[CON] User tried make connection. IP : ${socket.inetAddress.hostAddress}, PORT : ${socket.port}"
                 )
             }
         }
@@ -56,37 +57,50 @@ class FSServer(
         running = true
         while (running) {
             val socket = ss.accept()
-            val socketInputStream = socket.getInputStream()
-            val socketOutputStream = socket.getOutputStream()
+            thread {
+                    val socketInputStream = socket.getInputStream()
+                    val socketOutputStream = socket.getOutputStream()
 
-            // get client file metadata
-            val metaDataMsg = fileTransfer.receiveMetaData(socketInputStream)
-            val metaData = metaDataMsg.toFileMetaData()
-            val requester = metaDataMsg.requester
+                    // get client file metadata
+                    val metaDataMsg = fileTransfer.receiveMetaData(socketInputStream)
+                    val metaData = metaDataMsg.toFileMetaData()
+                    val requester = metaDataMsg.requester
+                    println("[RCV] Receiving ${metaData.name} from ${requester}")
 
-            val serverMetadata = fileManager.getNewestMetaData(metaData) ?: FSFileMetaData()
-            fileManager.saveMetaData(metaData)
+                    val serverMetadata = fileManager.getNewestMetaData(metaData) ?: FSFileMetaData()
 
-            // send metadata
-            fileTransfer.sendMetaData("", serverMetadata, socketOutputStream)
+                    // send metadata
+                    fileTransfer.sendMetaData("", serverMetadata, socketOutputStream)
 
-            // TODO("get client decision")
+                    val receiveDecision = socketInputStream.read()
+                    if (receiveDecision == 0) {
+                        println("[RCV] Receiving ${metaData.name} from ${requester} Canceled.")
+                    } else {
+                        // receive file
+                        fileManager.saveMetaData(metaData)
+                        val file = fileManager.getFile(metaData)
+                        val fileOutputStream = file.outputStream()
 
-            // receive file
-            val file = fileManager.getFile(metaData)
-            val fileOutputStream = file.outputStream()
+                        fileOutputStream.use { socketInputStream.copyTo(it) }
 
-            fileOutputStream.use { socketInputStream.copyTo(it) }
+                        fileOutputStream.close()
 
-            // broadcast
-            broadcast(
-                FSEventMessage(
-                    EventType.FILE_MODIFY,
-                    logicalClock.get(),
-                    *metaData.toStringArray()
-                ),
-                metaData.shared + metaData.owner
-            )
+                        println("[RCV] Received ${metaData.name} from ${requester} Canceled.")
+
+                        // broadcast
+                        broadcast(
+                            FSEventMessage(
+                                EventType.FILE_MODIFY,
+                                logicalClock.get(),
+                                *metaData.toStringArray()
+                            ),
+                            metaData.shared + metaData.owner
+                        )
+                    }
+
+                    socket.close()
+                }
+                .join()
         }
     }
 
@@ -96,26 +110,36 @@ class FSServer(
         running = true
         while (running) {
             val socket = ss.accept()
-            val socketInputStream = socket.getInputStream()
-            val socketOutputStream = socket.getOutputStream()
+            thread {
+                    val socketInputStream = socket.getInputStream()
+                    val socketOutputStream = socket.getOutputStream()
 
-            // get client meta data
-            val metaDataMsg = fileTransfer.receiveMetaData(socketInputStream)
-            val metaData = metaDataMsg.toFileMetaData()
-            val requester = metaDataMsg.requester
+                    // get client meta data
+                    val metaDataMsg = fileTransfer.receiveMetaData(socketInputStream)
+                    val metaData = metaDataMsg.toFileMetaData()
+                    val requester = metaDataMsg.requester
+                    println("[SND] Sending ${metaData.name} to ${requester}.")
 
-            val newestMetaData = fileManager.getNewestMetaData(metaData) ?: metaData
+                    val newestMetaData = fileManager.getNewestMetaData(metaData) ?: metaData
 
-            val file = fileManager.getFile(newestMetaData)
-            val fileInputStream = file.inputStream()
+                    // send metadata
+                    fileTransfer.sendMetaData("", newestMetaData, socketOutputStream)
 
-            // send metadata
-            fileTransfer.sendMetaData("", newestMetaData, socketOutputStream)
+                    val receiveDecision = socketInputStream.read()
+                    if (receiveDecision == 0) {
+                        println("[SND] Sending ${metaData.name} to ${requester} Canceled.")
+                    } else {
+                        // send file
+                        val file = fileManager.getFile(newestMetaData)
+                        val fileInputStream = file.inputStream()
+                        socketOutputStream.use { fileInputStream.copyTo(it) }
+                        println("[SND] Sent ${metaData.name} to ${requester}.")
 
-            // TODO("get client decision")
-
-            // send file
-            socketOutputStream.use { fileInputStream.copyTo(it) }
+                        fileInputStream.close()
+                    }
+                    socket.close()
+                }
+                .join()
         }
     }
 
@@ -142,7 +166,7 @@ class FSServer(
 
     fun start() {
         if (verbose) {
-            println("FSServer started.")
+            println("[SERVER] FSServer started.")
         }
         running = true
         mainloopThread.start()
@@ -180,7 +204,7 @@ class FSServer(
     }
 
     override fun broadcast(msg: FSEventMessage, users: List<String>) {
-        println("Broadcast msg code=${msg.mEventcode}, msg=${msg.messageField.strs}")
+        println("[MSG] Broadcast msg code=${msg.mEventcode}, msg=${msg.messageField.strs}")
         for (id in users) {
             val fsUser = userManager.findUserById(id)
             if (fsUser != null) {

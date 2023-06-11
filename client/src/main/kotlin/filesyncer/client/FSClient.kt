@@ -4,6 +4,8 @@ import filesyncer.common.*
 import filesyncer.common.file.FSFileMetaData
 import filesyncer.common.file.FSFileTransfer
 import java.io.File
+import java.io.FileInputStream
+import java.io.IOException
 import java.net.Socket
 import java.nio.file.StandardWatchEventKinds
 import java.nio.file.WatchEvent
@@ -42,7 +44,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
     private var _localRepoWatcher: FileWatcher? = null
 
     private val logicalClock = FSLogicalClock()
-    private var fileTransfer: FSFileTransfer? = FSFileTransfer()
+    private var fileTransfer: FSFileTransfer = FSFileTransfer()
 
     // private var _localFileLists = mutableListOf<FSFileMetaData>()
     private var _cloudFileLists = mutableListOf<FSFileMetaData>()
@@ -50,6 +52,8 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
     private var fileManager: FSClientFileManager? = null
 
     private var _userList: List<String> = emptyList()
+
+    private var _lastClock: Long = 0L
 
     fun start() {
 
@@ -64,7 +68,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
     }
 
     fun startConnection(address: String, port: Int) {
-        println("Creating connworker")
+        println("[CON] Creating connworker")
         val socket = Socket(address, port)
         runner = FSEventConnWorker(socket, this, true)
         runner!!.run()
@@ -74,7 +78,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
 
     override fun handleMessage(msg: FSEventMessage) {
         println(
-            "client code = ${msg.mEventcode}, timeStamp=${msg.mTimeStamp} msg: ${msg.messageField.strs}"
+            "[MSG] Received client code = ${msg.mEventcode}, timeStamp=${msg.mTimeStamp} msg: ${msg.messageField.strs}"
         )
         logicalClock.sync(msg.mTimeStamp)
         when (msg.mEventcode) {
@@ -119,16 +123,6 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
             EventType.SYNC -> {
                 waitingSyncRequest.grant()
             }
-            EventType.FILE_CREATE -> {
-                // TODO : download from server
-                runner!!.putMsgToSendQueue(
-                    FSEventMessage(
-                        EventType.DOWNLOAD_REQUEST,
-                        logicalClock.get(),
-                        msg.messageField.strs[0]
-                    )
-                )
-            }
             EventType.FILE_DELETE -> {
                 val fileName = msg.messageField.strs[0]
                 fileManager!!.localFolder.resolve(fileName).delete()
@@ -140,20 +134,12 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
                 val localFilePath = fileManager!!.localFolder.resolve(cloudMetaData.name)
                 if (!localFilePath.exists()) {
                     download(cloudMetaData, localFilePath)
-                    return
-                }
-                val localMd5 = FSFileHash.md5(localFilePath)
+                } else {
+                    val localMd5 = FSFileHash.md5(localFilePath)
 
-                if (localMd5 != cloudMetaData.md5) {
-                    // TODO : check collision
-                    runner!!.putMsgToSendQueue(
-                        FSEventMessage(
-                            EventType.DOWNLOAD_REQUEST,
-                            logicalClock.get(),
-                            msg.messageField.strs[0]
-                        )
-                    )
-                    download(cloudMetaData, localFilePath)
+                    if (localMd5 != cloudMetaData.md5) {
+                        download(cloudMetaData, localFilePath)
+                    }
                 }
             }
             EventType.LIST_USER_RESPONSE -> {
@@ -170,12 +156,18 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
         val name = file.name
         val file = fileManager!!.localFolder.resolve(name)
         if (kind == StandardWatchEventKinds.ENTRY_CREATE) {
-            println("${name} created")
-            // upload
-            val metaData = FSFileMetaData()
+            println("[FILE] ${name} created")
 
-            metaData.name = name
-            metaData.owner = _id
+            while (isFileLocked(file)) {
+                Thread.sleep(300)
+            }
+
+            // upload
+            var metaData = fileManager!!.getMetaData(name)
+            if (metaData == null) {
+                metaData = FSFileMetaData(file.name)
+                metaData.owner = _id
+            }
             metaData.fileSize = file.length()
             metaData.md5 = FSFileHash.md5(file)
             metaData.timeStamp = logicalClock.get()
@@ -184,19 +176,27 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
             fileManager!!.saveMetaData(metaData)
 
             upload(name)
-            runner!!.putMsgToSendQueue(
-                FSEventMessage(EventType.FILE_CREATE, logicalClock.get(), name)
-            )
         } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
-            println("${name} removed")
+            println("[FILE] ${name} removed")
             // tell delete
-            val metaData = fileManager!!.getMetaData(name)!!
-            runner!!.putMsgToSendQueue(
-                FSEventMessage(EventType.FILE_DELETE, logicalClock.get(), *metaData.toStringArray())
-            )
-            fileManager!!.deleteMetaData(metaData)
+            val metaData = fileManager!!.getMetaData(name)
+
+            if (metaData != null) {
+                runner!!.putMsgToSendQueue(
+                    FSEventMessage(
+                        EventType.FILE_DELETE,
+                        logicalClock.get(),
+                        *metaData.toStringArray()
+                    )
+                )
+                fileManager!!.deleteMetaData(metaData)
+            }
         } else if (kind == StandardWatchEventKinds.ENTRY_MODIFY) {
-            println("${name} modified")
+            println("[FILE] ${name} modified")
+
+            while (isFileLocked(file)) {
+                Thread.sleep(300)
+            }
 
             // upload
             var metaData = fileManager!!.getMetaData(name)
@@ -242,13 +242,30 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
 
         // send local metadata
         fileTransfer!!.sendMetaData(_id, metaData, socketOutputStream)
+        println(
+            "[UPLOAD] Try to upload ${metaData.name} (stamp=${metaData.timeStamp}, md5=${metaData.md5}))"
+        )
 
         // download cloud metadata
-        val metadata = fileTransfer!!.receiveMetaData(socketInputStream).toFileMetaData()
-        // TODO("Check collision")
+        val cloudMetadata = fileTransfer!!.receiveMetaData(socketInputStream).toFileMetaData()
+        println(
+            "[UPLOAD] Checking cloud file ${cloudMetadata.name} (stamp=${cloudMetadata.timeStamp}, md5=${cloudMetadata.md5})"
+        )
 
-        // upload
-        socketOutputStream.use { fileInputStream.copyTo(it) }
+        val collision = cloudMetadata.timeStamp > metaData.timeStamp
+
+        if (collision) {
+            println("[UPLOAD] Upload canceled due to collision of file ${fileName}")
+            socketOutputStream.write(0)
+            socket.close()
+            fileInputStream.close()
+        } else {
+            socketOutputStream.write(1)
+
+            // upload
+            socketOutputStream.use { fileInputStream.copyTo(it) }
+            println("[UPLOAD] Done upload ${file.name}")
+        }
 
         socket.close()
         fileInputStream.close()
@@ -263,42 +280,122 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
         // send local metadata
         fileTransfer!!.sendMetaData(_id, metadata, socketOutputStream)
 
+        println(
+            "[DOWNLOAD] Try to download ${metadata.name} (stamp=${metadata.timeStamp}, md5=${metadata.md5}))"
+        )
+
         // download cloud metadata
-        val fileOutputStream = file.outputStream()
+
         val cloudMetadata = fileTransfer!!.receiveMetaData(socketInputStream).toFileMetaData()
-        // TODO("Check collision")
+        println(
+            "[DOWNLOAD] Checking cloud file ${cloudMetadata.name} (stamp=${cloudMetadata.timeStamp}, md5=${cloudMetadata.md5}))"
+        )
 
-        // download file
-        fileOutputStream.use { socketInputStream.copyTo(it) }
+        val collision = cloudMetadata.timeStamp < metadata.timeStamp
+        if (collision) {
+            println("[DOWNLOAD] download canceled due to collision of file ${metadata.name}")
+            socketOutputStream.write(0)
+            socket.close()
+        } else {
+            socketOutputStream.write(1)
 
-        fileManager!!.registerMetaData(cloudMetadata)
-        fileManager!!.saveMetaData(cloudMetadata)
+            // save metadata
+            fileManager!!.registerMetaData(cloudMetadata)
+            fileManager!!.saveMetaData(cloudMetadata)
 
-        fileOutputStream.close()
+            // download file
+            val fileOutputStream = file.outputStream()
+            fileOutputStream.use { socketInputStream.copyTo(it) }
+
+            fileOutputStream.close()
+
+            println("[DOWNLOAD] Done download ${file.name}")
+        }
+
         socket.close()
     }
 
-    private fun resolveDifference(cloudFileList: List<FSFileMetaData>) {
+    private fun resolveBootDifference(cloudFileList: List<FSFileMetaData>) {
+        println("[JOB] Resolve difference happened when client is offline")
 
-        val localList = fileManager!!.metaDataMap.values.toMutableList()
+        val files = fileManager!!.localFolder.listFiles()!!.filter { it.isFile }
+        val metaDataBasedOnLocal =
+            files.map { FSFileMetaData(it.name, it.length(), 0L, FSFileHash.md5(it)) }
+
+        // comparison metadata and local files
+        val newFiles = mutableListOf<FSFileMetaData>()
+        val modifiedFiles = mutableListOf<FSFileMetaData>()
+        val removedFiles = mutableListOf<FSFileMetaData>()
+
+        for (meta in metaDataBasedOnLocal) {
+            if (meta.name in fileManager!!.metaDataMap) {
+                if (meta.md5 != fileManager!!.metaDataMap[meta.name]!!.md5) {
+                    // file modified during offline
+
+                    val savedMetaData = fileManager!!.getMetaData(meta.name)!!
+                    val file = fileManager!!.getFile(savedMetaData)
+                    savedMetaData.timeStamp = _lastClock
+                    savedMetaData.md5 = FSFileHash.md5(file)
+                    savedMetaData.fileSize = file.length()
+                    modifiedFiles.add(savedMetaData)
+                }
+            } else {
+                // new file created during offline
+                meta.owner = _id
+                newFiles.add(meta)
+            }
+        }
+
+        val localnameset = HashSet(metaDataBasedOnLocal.map { it.name })
+        for (metadataName in fileManager!!.metaDataMap.keys) {
+            if (!localnameset.contains(metadataName)) {
+                removedFiles.add(fileManager!!.metaDataMap[metadataName]!!)
+            }
+        }
+
+        println("[JOB] New      files ${newFiles.map{it.name}}")
+        println("[JOB] Modified files ${modifiedFiles.map{it.name}}")
+        println("[JOB] Removed  files ${removedFiles.map{it.name}}")
+
+        // resolve
+        for (newFileMetaData in newFiles) {
+            fileManager!!.registerMetaData(newFileMetaData)
+            fileManager!!.saveMetaData(newFileMetaData)
+            upload(newFileMetaData.name)
+        }
+
+        for (modifiedMetaData in modifiedFiles) {
+            fileManager!!.registerMetaData(modifiedMetaData)
+            fileManager!!.saveMetaData(modifiedMetaData)
+            upload(modifiedMetaData.name)
+        }
+
+        for (removedMetaData in removedFiles) {
+            fileManager!!.deleteMetaData(removedMetaData)
+        }
+
         val cloudMap = HashMap<String, FSFileMetaData>()
 
         for (metaData in cloudFileList) {
             cloudMap[metaData.name] = metaData
         }
 
-        for (local in localList) {
-            if (cloudMap.contains(local.name)) {
-                val cloudMetaData = cloudMap[local.name]
-                if (cloudMetaData!!.md5 != local.md5) {
-                    if (local.timeStamp <= cloudMetaData.timeStamp) {} else {
-
-                        TODO("download")
-                    }
+        for (cloud in cloudFileList) {
+            val file = fileManager!!.getFile(cloud)
+            if (cloud.name in fileManager!!.metaDataMap) {
+                if (
+                    (file.name in modifiedFiles.map { it.name }) ||
+                        (file.name in removedFiles.map { it.name })
+                ) {
+                    // collided files. User should modify or delete file.
+                    continue
+                }
+                val localMeta = fileManager!!.metaDataMap[cloud.name]
+                if (cloud.md5 != localMeta?.md5) {
+                    download(cloud, file)
                 }
             } else {
-                // file is in local but not in cloud.
-                TODO("upload")
+                download(cloud, file)
             }
         }
     }
@@ -315,6 +412,48 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
         waitingListUserRequest.waitLock()
 
         return _userList
+    }
+
+    private fun isFileLocked(file: File): Boolean {
+        var stream: FileInputStream? = null
+
+        if (!file.exists()) return false
+
+        try {
+            stream = FileInputStream(file)
+        } catch (e: IOException) {
+
+            return true
+        } finally {
+            stream?.close()
+        }
+
+        // file is not locked
+        return false
+    }
+
+    private fun getCloudFolder(): List<FSFileMetaData> {
+        try {
+            runner!!.putMsgToSendQueue(
+                FSEventMessage(EventType.LISTFOLDER_REQUEST, logicalClock.get(), _id)
+            )
+        } catch (e: Exception) {
+            return emptyList()
+        }
+
+        waitingListFolderRequest.waitLock()
+        waitingListFolderRequest.reset()
+
+        // val cloudFiles: List<FSFileMetaData> = _cloudFileLists.map { it.name }
+        // val _localFileLists: List<FSFileMetaData> =
+        // fileManager!!.metaDataMap.values.toList()
+
+        // val lists = HashSet(_localFileLists + cloudFiles).toTypedArray()
+        // lists.sort()
+        // val localSet = HashSet(_localFileLists)
+        // val cloudSet = HashSet(cloudFiles)
+        val data = _cloudFileLists
+        return data
     }
 
     val frontInterface =
@@ -375,6 +514,9 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
                             _id
                         )
 
+                    val cloud = getCloudFolder()
+                    resolveBootDifference(cloud)
+
                     _localRepoWatcher = FileWatcher(fileManager!!.localFolder.toPath())
                     _localRepoWatcher!!.fileChangedListener = this@Client
                     _localRepoWatcher!!.run()
@@ -418,27 +560,7 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
 
             override fun showFolder(dir: String): List<Map<String, String>> {
 
-                try {
-                    runner!!.putMsgToSendQueue(
-                        FSEventMessage(EventType.LISTFOLDER_REQUEST, logicalClock.get(), _id)
-                    )
-                } catch (e: Exception) {
-                    return emptyList()
-                }
-
-                waitingListFolderRequest.waitLock()
-                waitingListFolderRequest.reset()
-
-                // val cloudFiles: List<FSFileMetaData> = _cloudFileLists.map { it.name }
-                // val _localFileLists: List<FSFileMetaData> =
-                // fileManager!!.metaDataMap.values.toList()
-
-                // val lists = HashSet(_localFileLists + cloudFiles).toTypedArray()
-                // lists.sort()
-                // val localSet = HashSet(_localFileLists)
-                // val cloudSet = HashSet(cloudFiles)
-                val data = _cloudFileLists.map { it.toMap() }
-                return data
+                return getCloudFolder().map { it.toMap() }
             }
 
             override fun uploadFile(path: String): Boolean {
@@ -451,7 +573,8 @@ class Client(var localRepoDir: File) : FSEventMessageHandler, FileWatcher.OnFile
                     FSEventMessage(EventType.LOGOUT, logicalClock.get(), _id, _passwd)
                 )
                 runner?.stop()
-                fileTransfer = null
+
+                _lastClock = logicalClock.time
 
                 _localRepoWatcher!!.stop()
             }
