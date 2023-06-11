@@ -19,12 +19,10 @@ class FSEventMessageTest {
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
         assertEquals(msg.mBytesNums, reconstructedMsg.mBytesNums)
-        assertEquals(msg.userIdField.str, reconstructedMsg.userIdField.str)
-        assertEquals(msg.userPasswordField.str, reconstructedMsg.userPasswordField.str)
-        assertEquals(msg.extraStrField.str, reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
 
         // With MESSAGE
-        msg = FSEventMessage(EventType.LOGIN_REQUEST, "ididid", "passwspassws")
+        msg = FSEventMessage(EventType.LOGIN_REQUEST, 1, "ididid", "passwspassws")
         reconstructedMsg = FSEventMessage()
         byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -33,14 +31,12 @@ class FSEventMessageTest {
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
         assertEquals(msg.mBytesNums, reconstructedMsg.mBytesNums)
-        assertEquals(msg.userIdField.str, reconstructedMsg.userIdField.str)
-        assertEquals(msg.userPasswordField.str, reconstructedMsg.userPasswordField.str)
-        assertEquals(msg.extraStrField.str, reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
     fun testNONE() {
-        val msg = FSEventMessage(EventType.NONE, "ididid", "passwspassws", "extrastr")
+        val msg = FSEventMessage(EventType.NONE, 1, "ididid", "passwspassws", "extrastr")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -48,15 +44,12 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals("", reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
     fun testLoginRequest() {
-        val msg = FSEventMessage(EventType.LOGIN_REQUEST, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.LOGIN_REQUEST, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -64,14 +57,12 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals(msg.userIdField.str, reconstructedMsg.userIdField.str)
-        assertEquals(msg.userPasswordField.str, reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
     fun testLoginGranted() {
-        val msg = FSEventMessage(EventType.LOGIN_GRANTED, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.LOGIN_GRANTED, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -79,14 +70,12 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals("", reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
     fun testLoginRejected() {
-        val msg = FSEventMessage(EventType.LOGIN_REJECTED, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.LOGIN_REJECTED, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -94,14 +83,12 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals("", reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
     fun testLogout() {
-        val msg = FSEventMessage(EventType.LOGOUT, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.LOGOUT, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -109,14 +96,12 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals(msg.userIdField.str, reconstructedMsg.userIdField.str)
-        assertEquals(msg.userPasswordField.str, reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
     fun testBroadcastConnected() {
-        val msg = FSEventMessage(EventType.BROADCAST_CONNECTED, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.BROADCAST_CONNECTED, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -124,14 +109,12 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals(msg.userIdField.str, reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
     fun testBroadcastDisconnected() {
-        val msg = FSEventMessage(EventType.BROADCAST_DISCONNECTED, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.BROADCAST_DISCONNECTED, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -139,14 +122,12 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals(msg.userIdField.str, reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
     fun testUploadDone() {
-        val msg = FSEventMessage(EventType.UPLOAD_DONE, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.UPLOAD_DONE, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -154,15 +135,13 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals("", reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-        assertEquals(msg.extraStrField.str, reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
     @Test
     fun testListFolderRequest() {
         val list = arrayListOf("aaa", "bbb", "ccc")
-        val msg = FSEventMessage(EventType.LISTFOLDER_REQUEST, "ididid", "passwspassws")
-        msg.fileListField = FSVarLenStringListField(list)
+        val msg = FSEventMessage(EventType.LISTFOLDER_REQUEST, 1, "ididid", "passwspassws")
+        msg.messageField = FSVarLenStringListField(list)
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -170,17 +149,14 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals("", reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
-        assertEquals(emptyList<String>(), reconstructedMsg.fileListField.strs)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
     fun testListFolderResponse() {
         val list = arrayListOf("aaa", "bbb", "ccc")
-        val msg = FSEventMessage(EventType.LISTFOLDER_RESPONSE, "ididid", "passwspassws")
-        msg.fileListField = FSVarLenStringListField(list)
+        val msg = FSEventMessage(EventType.LISTFOLDER_RESPONSE, 1, "ididid", "passwspassws")
+        msg.messageField = FSVarLenStringListField(list)
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -188,15 +164,12 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals("", reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
-        assertEquals(list, reconstructedMsg.fileListField.strs)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
     fun testRegisterRequest() {
-        val msg = FSEventMessage(EventType.REGISTER_REQUEST, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.REGISTER_REQUEST, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -204,14 +177,12 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals(msg.userIdField.str, reconstructedMsg.userIdField.str)
-        assertEquals(msg.userPasswordField.str, reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
     fun testRegisterGranted() {
-        val msg = FSEventMessage(EventType.REGISTER_GRANTED, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.REGISTER_GRANTED, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -219,14 +190,12 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals("", reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 
     @Test
     fun testRegisterRejected() {
-        val msg = FSEventMessage(EventType.REGISTER_GRANTED, "ididid", "passwspassws")
+        val msg = FSEventMessage(EventType.REGISTER_GRANTED, 1, "ididid", "passwspassws")
         val reconstructedMsg = FSEventMessage()
         val byteBuffer = msg.marshall()!!
         reconstructedMsg.unmarshall(byteBuffer)
@@ -234,8 +203,6 @@ class FSEventMessageTest {
         assertEquals(0, byteBuffer.remaining())
 
         assertEquals(msg.mEventcode, reconstructedMsg.mEventcode)
-        assertEquals("", reconstructedMsg.userIdField.str)
-        assertEquals("", reconstructedMsg.userPasswordField.str)
-        assertEquals("", reconstructedMsg.extraStrField.str)
+        assertEquals(msg.messageField.strs, reconstructedMsg.messageField.strs)
     }
 }

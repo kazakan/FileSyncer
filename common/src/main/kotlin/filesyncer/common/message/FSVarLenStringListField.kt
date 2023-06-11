@@ -13,6 +13,8 @@ class FSVarLenStringListField() : FSMessageField {
         listBytes = calculateListBytes()
     }
 
+    constructor(vararg msgs: String) : this(msgs.toList())
+
     constructor(byteBuffer: ByteBuffer) : this() {
         unmarshall(byteBuffer)
     }

@@ -58,7 +58,7 @@ class FSEventConnection(var socket: Socket, val verbose: Boolean = false) {
     fun close() {
         if (_dead) return
         _dead = true
-        if (verbose) println("Closing FSEventConnection with ${socket.inetAddress}")
+        if (verbose) println("[CON] Closing FSEventConnection with ${socket.inetAddress}")
         dous.flush()
         dous.close()
         dios.close()

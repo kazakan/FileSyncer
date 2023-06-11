@@ -1,4 +1,13 @@
-uploadList = [];
+var uploadList = [];
+
+var dummyFileList = [
+    { name: "hellofile.txt", owner: "userA", shared: "userB/UserC" },
+];
+fileList = [];
+var tmpFile = null;
+var tmpIdx = -1;
+
+userList = [];
 
 function uploadFile(path) {
     var params = new URLSearchParams();
@@ -64,6 +73,25 @@ function uploadListRow(path) {
 
 function downloadFile(path) {}
 
+function getFileListRow(fileData) {
+    var row = '<div class="row">' + fileData["name"];
+
+    // owner text
+    row +=
+        '<span style="float:right; margin-right:5px;">' +
+        fileData["owner"] +
+        "</span>";
+
+    // share button
+    row += '<button style="float: right; margin-right: 5px;" ';
+    row += "onclick = \"openShareDialogue('" + fileData["name"] + "')\"";
+    row += ">Share</button>";
+
+    row += "</div> \n";
+
+    return row;
+}
+
 function getFileList(dir) {
     var params = new URLSearchParams();
     params.append("dir", dir);
@@ -71,39 +99,13 @@ function getFileList(dir) {
         (response) => {
             var element = document.getElementById("file-list");
             var result = response.data;
-
-            console.log(result[0]);
+            fileList = result;
 
             element.innerHTML = "";
 
             if (result.length > 0) {
                 for (var i = 0; i < result.length; ++i) {
-                    var isLocal =
-                        result[i]["status"] == "Both" ||
-                        result[i]["status"] == "Local Only";
-                    var isCloud =
-                        result[i]["status"] == "Both" ||
-                        result[i]["status"] == "Cloud Only";
-
-                    var row = '<div class="row">' + result[i]["name"];
-
-                    // download button
-                    row +=
-                        '<button style="float:right;" disabled="">download</button>';
-
-                    // add to upload list button
-                    row +=
-                        "<button onclick=\"addToUploadList('" +
-                        result[i]["name"] +
-                        '\')" style="float:right;" ';
-                    if (!isLocal) row += 'disabled=""';
-                    row += ">Select</button>";
-                    row +=
-                        '<span style="float:right; margin-right:5px;">' +
-                        result[i]["status"] +
-                        "</span>";
-
-                    row += "</div> \n";
+                    var row = getFileListRow(result[i]);
                     element.innerHTML += row;
                 }
             } else {
@@ -126,6 +128,33 @@ function disconnect() {
     );
 }
 
+function getShareableUsers(fname) {
+    var fileInfo = null;
+    for (var i = 0; i < fileList.length; ++i) {
+        if (fileList[i]["name"] == fname) {
+            fileInfo = fileList[i];
+            break;
+        }
+    }
+
+    if (fileInfo == null) return null;
+}
+
+/** Get user registered in server.*/
+function getUserList() {
+    axios.get("/api/listUser", {}).then(
+        (response) => {
+            messages = response.data;
+            userList = messages.split("\t");
+            console.log(messages);
+            console.log(userList);
+        },
+        (error) => {
+            console.log(error);
+        }
+    );
+}
+
 function addReportMessage(msg) {
     var messageWindow = document.getElementById("report-list");
     messageWindow.innerHTML += "<p>" + msg + "</p>";
@@ -142,7 +171,93 @@ function getReportMessage() {
     });
 }
 
+function openShareDialogue(fileName) {
+    var dialoguePage = document.getElementById("share-dialogue-page");
+
+    dialoguePage.classList.remove("hide");
+    dialoguePage.classList.add("full");
+
+    for (var i = 0; i < fileList.length; ++i) {
+        if (fileList[i]["name"] == fileName) {
+            tmpIdx = i;
+            tmpFile = fileList[i];
+            break;
+        }
+    }
+
+    updateChipContainer();
+}
+
+function userInList(userName, list) {
+    for (var i = 0; i < list.length; ++i) {
+        if (list[i] == userName) return true;
+    }
+    return false;
+}
+
+function checkUserAddable(userName) {
+    return (
+        userInList(userName, userList) &&
+        !userInList(userName, tmpFile["shared"].split("/"))
+    );
+}
+
+function addUserToShare() {
+    var user = document.getElementById("adduser").value;
+    if (!checkUserAddable(user)) {
+        alert("Cannot add user. Already shared or user not exists.");
+        return;
+    }
+
+    var sharedUsers = tmpFile["shared"].split("/");
+    sharedUser.push(user);
+    tmpFile["shared"] = sharedUser.join("/");
+
+    updateChipContainer();
+}
+
+function updateChipContainer() {
+    var chipContainer = document.getElementById("chip-container");
+    chipContainer.innerHTML = "";
+
+    sharedUser = tmpFile["shared"].split("/");
+    for (var j = 0; j < sharedUser.length; ++j) {
+        chipContainer.innerHTML += '<div class="chip">';
+        chipContainer.innerHTML += sharedUser[j];
+        chipContainer.innerHTML += "</div>";
+    }
+}
+
+function closeShareDialogue(share) {
+    var dialoguePage = document.getElementById("share-dialogue-page");
+    dialoguePage.classList.remove("full");
+    dialoguePage.classList.add("hide");
+
+    if (share) {
+        var params = new URLSearchParams();
+        params.append("name", tmpFile["name"]);
+        params.append("fileSize", tmpFile["fileSize"]);
+        params.append("timeStamp", tmpFile["timeStamp"]);
+        params.append("md5", tmpFile["md5"]);
+        params.append("owner", tmpFile["owner"]);
+        params.append("shared", tmpFile["shared"]);
+
+        axios.post("/api/shareFile", params);
+
+        for (var i = 0; i < fileList.length; ++i) {
+            if (fileList[i]["name"] == tmpFile["name"]) {
+                fileList[i] = tmpFile;
+                break;
+            }
+        }
+    }
+}
+
 function onLoad() {
     getFileList("/");
     setInterval(getReportMessage, 1000);
+    setInterval(function () {
+        getFileList("");
+    }, 4000);
+    setInterval(getUserList, 4000);
 }

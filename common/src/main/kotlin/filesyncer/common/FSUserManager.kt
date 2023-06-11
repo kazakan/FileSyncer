@@ -8,6 +8,7 @@ interface FSUserManager {
     fun registerUser(user: FSUser): Boolean
     fun unregisterUser(user: FSUser): Boolean
     fun removeClosedConnection()
+    fun getUserNames(): List<String>
 
     interface FSUserManagerListener {
         fun onUserSessionRemoved(user: FSUser)

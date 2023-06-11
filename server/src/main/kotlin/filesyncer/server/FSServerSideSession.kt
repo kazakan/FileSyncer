@@ -1,16 +1,19 @@
 package filesyncer.server
 
 import filesyncer.common.*
+import filesyncer.common.file.FSFileMetaData
 import java.io.File
 import java.net.Socket
 import message.FSEventMessage
 import message.FSEventMessage.EventType
-import message.FSVarLenStringListField
 
 class FSServerSideSession(
     socket: Socket,
     val userManager: FSUserManager,
     val repoDir: File,
+    val clock: FSLogicalClock,
+    val fileManager: FSServerFileManager,
+    val broadcaster: FSMessageBroadcaster<FSEventMessage>,
     verbose: Boolean = false
 ) : FSSession(socket, verbose) {
 
@@ -21,13 +24,17 @@ class FSServerSideSession(
             object : FSEventMessageHandler {
                 override fun handleMessage(msg: FSEventMessage) {
                     if (verbose)
-                        println("Got Msg with Code=${msg.mEventcode}, ID=${msg.userIdField.str}")
+                        println(
+                            "Got Msg with Code=${msg.mEventcode}, timeStamp=${msg.mTimeStamp}, msg=${msg.messageField.strs}"
+                        )
+                    clock.sync(msg.mTimeStamp)
                     when (msg.mEventcode) {
                         EventType.ANSWER_ALIVE -> {}
                         EventType.LOGIN_REQUEST -> {
                             // check user and make response
-                            if (verbose) println("Got login requested by ${msg.userIdField.str}")
-                            val _user = FSUser(msg.userIdField.str, msg.userPasswordField.str)
+                            if (verbose)
+                                println("Got login requested by ${msg.messageField.strs[0]}")
+                            val _user = FSUser(msg.messageField.strs[0], msg.messageField.strs[1])
                             if (userManager.userExists(_user)) {
                                 if (
                                     userManager.addUserSession(_user, this@FSServerSideSession) ==
@@ -36,7 +43,7 @@ class FSServerSideSession(
                                     // already logged in other device
                                     if (verbose)
                                         println(
-                                            "Login requested by ${msg.userIdField.str} rejected."
+                                            "Login requested by ${msg.messageField.strs[0]} rejected."
                                         )
                                     connWorker.putMsgToSendQueue(
                                         FSEventMessage(EventType.LOGIN_REJECTED)
@@ -45,7 +52,7 @@ class FSServerSideSession(
                                     // granted
                                     if (verbose)
                                         println(
-                                            "Login requested by ${msg.userIdField.str} granted."
+                                            "Login requested by ${msg.messageField.strs[0]} granted."
                                         )
                                     user = _user
                                     state = State.LOGGED_IN
@@ -56,7 +63,9 @@ class FSServerSideSession(
                             } else {
                                 // rejected
                                 if (verbose)
-                                    println("Login requested by ${msg.userIdField.str} rejected.")
+                                    println(
+                                        "Login requested by ${msg.messageField.strs[0]} rejected."
+                                    )
                                 connWorker.putMsgToSendQueue(
                                     FSEventMessage(EventType.LOGIN_REJECTED)
                                 )
@@ -64,36 +73,81 @@ class FSServerSideSession(
                         }
                         EventType.LOGOUT -> {
                             // logout and broadcast msg
-                            val user = FSUser(msg.userIdField.str, msg.userPasswordField.str)
-                            if (verbose) println("User ${msg.userIdField.str} logged out.")
+                            val user = FSUser(msg.messageField.strs[0], msg.messageField.strs[1])
+                            if (verbose) println("User ${msg.messageField.strs[0]} logged out.")
                             // userManager.removeUserSession(user)
                         }
                         EventType.REGISTER_REQUEST -> {
-                            val user = FSUser(msg.userIdField.str, msg.userPasswordField.str)
+                            val user = FSUser(msg.messageField.strs[0], msg.messageField.strs[1])
                             val result = userManager.registerUser(user)
                             if (result) {
                                 connWorker.putMsgToSendQueue(
                                     FSEventMessage(EventType.REGISTER_GRANTED)
                                 )
-                                if (verbose) println("User ${msg.userIdField.str} registered.")
+                                if (verbose) println("User ${msg.messageField.strs[0]} registered.")
                             } else {
                                 connWorker.putMsgToSendQueue(
                                     FSEventMessage(EventType.REGISTER_REJECTED)
                                 )
                                 if (verbose)
-                                    println("Register of User ${msg.userIdField.str} rejected.")
+                                    println(
+                                        "Register of User ${msg.messageField.strs[0]} rejected."
+                                    )
                             }
                         }
                         EventType.LISTFOLDER_REQUEST -> {
-                            val names = repoDir.listFiles()?.filter { it.isFile }?.map { it.name }
-                            if (verbose) println("List folder request handled.")
-                            if (names != null) {
-                                connWorker.putMsgToSendQueue(
-                                    FSEventMessage(EventType.LISTFOLDER_RESPONSE).apply {
-                                        this.fileListField = FSVarLenStringListField(names)
-                                    }
-                                )
+                            val userId = msg.messageField.strs[0]
+
+                            val fileData = fileManager.listFiles(userId)
+
+                            var array = arrayOf<String>()
+
+                            for (metaData in fileData) {
+                                array = array.plus(metaData.toStringArray())
                             }
+
+                            if (verbose) println("List folder request handled.")
+                            connWorker.putMsgToSendQueue(
+                                FSEventMessage(EventType.LISTFOLDER_RESPONSE, clock.get(), *array)
+                            )
+                        }
+                        EventType.SYNC -> {
+                            connWorker.putMsgToSendQueue(FSEventMessage(EventType.SYNC, clock.time))
+                        }
+                        EventType.FILE_DELETE -> {
+                            val meta = FSFileMetaData()
+                            meta.fromStringArray(msg.messageField.strs.toTypedArray())
+                            broadcaster.broadcast(
+                                FSEventMessage(
+                                    EventType.FILE_DELETE,
+                                    clock.get(),
+                                    *meta.toStringArray()
+                                ),
+                                meta.shared.plus(meta.owner)
+                            )
+                            fileManager.delete(meta)
+                        }
+                        EventType.LIST_USER_REQUEST -> {
+                            connWorker.putMsgToSendQueue(
+                                FSEventMessage(
+                                    EventType.LIST_USER_RESPONSE,
+                                    clock.get(),
+                                    *userManager.getUserNames().toTypedArray()
+                                )
+                            )
+                        }
+                        EventType.SHARE_FILE -> {
+                            val meta = FSFileMetaData()
+                            meta.fromStringArray(msg.messageField.strs.toTypedArray())
+                            fileManager.saveMetaData(meta)
+                            broadcaster.broadcast(
+                                FSEventMessage(
+                                    EventType.FILE_MODIFY,
+                                    clock.get(),
+                                    *meta.toStringArray()
+                                ),
+                                meta.shared.plus(meta.owner)
+                            )
                         }
                         else -> {
                             // TODO("Do nothing.")

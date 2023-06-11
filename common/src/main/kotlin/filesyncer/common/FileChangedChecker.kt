@@ -1,64 +1,66 @@
 package filesyncer.common
 
 import java.io.File
+import java.nio.file.FileSystems
+import java.nio.file.Path
+import java.nio.file.StandardWatchEventKinds
+import java.nio.file.StandardWatchEventKinds.OVERFLOW
+import java.nio.file.WatchEvent
 
-enum class FileChangedCheckDataChanged {
-    NOT_CHANGED,
-    CHANGED,
-    REMOVED
-}
+/**  */
+class FileWatcher(rootDir: Path) {
 
-data class FileChangedCheckData(val file: File) {
-    var timeStamp: Long = -1
-    var hash = 0 // currently not available
-
-    init {
-        update()
+    interface OnFileChangedListener {
+        fun onFileChanged(file: File, kind: WatchEvent.Kind<out Any>)
     }
 
-    fun update() {
-        timeStamp = file.lastModified()
-    }
-}
+    var fileChangedListener: OnFileChangedListener? = null
 
-class FileChangedChecker(rootDir: File) {
+    val checkerThread = Thread {
+        var watchService = FileSystems.getDefault().newWatchService()
+        rootDir.register(
+            watchService,
+            StandardWatchEventKinds.ENTRY_CREATE,
+            StandardWatchEventKinds.ENTRY_DELETE,
+            StandardWatchEventKinds.ENTRY_MODIFY
+        )
 
-    var files: HashSet<FileChangedCheckData> = HashSet<FileChangedCheckData>()
+        while (true) {
+            val key = watchService.take()
 
-    init {
-        for (file: File in rootDir.listFiles()!!) {
-            if (file.isDirectory) continue
-            files.add(FileChangedCheckData(file))
-        }
-    }
+            for (event in key.pollEvents()) {
+                val kind = event.kind()
 
-    fun checkFolder() {
-        for (file in this.files) {
-            when (isFileChanged(file)) {
-                FileChangedCheckDataChanged.CHANGED -> {
-                    files.remove(file)
-                    file.update()
-                    files.add(file)
+                if (kind == OVERFLOW) {
+                    continue
                 }
-                FileChangedCheckDataChanged.REMOVED -> {
-                    files.remove(file)
-                }
-                else -> {
-                    // do nothing
+
+                val ev: WatchEvent<Path> = event as WatchEvent<Path>
+                val path: Path = ev.context()
+
+                try {
+                    fileChangedListener?.onFileChanged(path.toFile(), kind)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    watchService = FileSystems.getDefault().newWatchService()
+                    rootDir.register(
+                        watchService,
+                        StandardWatchEventKinds.ENTRY_CREATE,
+                        StandardWatchEventKinds.ENTRY_DELETE,
+                        StandardWatchEventKinds.ENTRY_MODIFY
+                    )
                 }
             }
+
+            key.reset()
         }
     }
 
-    fun isFileChanged(data: FileChangedCheckData): FileChangedCheckDataChanged {
-        if (!data.file.exists()) {
-            return FileChangedCheckDataChanged.REMOVED
-        }
+    fun run() {
+        checkerThread.start()
+    }
 
-        if (data.file.lastModified() != data.timeStamp) {
-            data.timeStamp = data.file.lastModified()
-            return FileChangedCheckDataChanged.CHANGED
-        }
-        return FileChangedCheckDataChanged.NOT_CHANGED
+    fun stop() {
+        checkerThread.interrupt()
     }
 }

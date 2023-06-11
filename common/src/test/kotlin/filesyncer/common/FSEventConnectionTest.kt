@@ -68,9 +68,9 @@ class FSEventConnectionTest {
     @Test
     fun testVarLenMessageSendAndReceive() {
         val PORT = 5000
-        val msg1 = FSEventMessage(EventType.BROADCAST_CONNECTED, "aaaaa")
-        val msg2 = FSEventMessage(EventType.BROADCAST_CONNECTED, "bbbbb")
-        val msg3 = FSEventMessage(EventType.BROADCAST_CONNECTED, "ccccc")
+        val msg1 = FSEventMessage(EventType.BROADCAST_CONNECTED, 1, "aaaaa", "bbbb")
+        val msg2 = FSEventMessage(EventType.BROADCAST_CONNECTED, 2, "bbbbb")
+        val msg3 = FSEventMessage(EventType.BROADCAST_CONNECTED, 3, *arrayOf("aaa", "bbb"))
 
         var runClient = Runnable {
             var client = Socket("localhost", PORT)
@@ -93,11 +93,11 @@ class FSEventConnectionTest {
         var gotmsg3 = serverConn.getMessage()
 
         assertEquals(msg1.mEventcode, gotmsg1.mEventcode)
-        assertEquals(msg1.userIdField.str, gotmsg1.userIdField.str)
+        assertEquals(msg1.messageField.strs, gotmsg1.messageField.strs)
         assertEquals(msg2.mEventcode, gotmsg2.mEventcode)
-        assertEquals(msg2.userIdField.str, gotmsg2.userIdField.str)
+        assertEquals(msg2.messageField.strs, gotmsg2.messageField.strs)
         assertEquals(msg3.mEventcode, gotmsg3.mEventcode)
-        assertEquals(msg3.userIdField.str, gotmsg3.userIdField.str)
+        assertEquals(msg3.messageField.strs, gotmsg3.messageField.strs)
 
         ss.close()
         server.close()
