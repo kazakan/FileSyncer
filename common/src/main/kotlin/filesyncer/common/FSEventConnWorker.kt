@@ -64,7 +64,7 @@ open class FSEventConnWorker(
 
     val threadUncaughtExceptionHandler =
         Thread.UncaughtExceptionHandler { t, e ->
-            e.printStackTrace()
+            // e.printStackTrace()
             closeReserved = true
             sendMsgThread.interrupt()
             receiveMsgThread.interrupt()
