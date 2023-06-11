@@ -101,11 +101,6 @@ function getFileList(dir) {
             var result = response.data;
             fileList = result;
 
-            // just for debug
-            if (fileList.length == 0) fileList = dummyFileList;
-
-            console.log(result[0]);
-
             element.innerHTML = "";
 
             if (result.length > 0) {

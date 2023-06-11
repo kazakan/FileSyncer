@@ -179,7 +179,7 @@ class FSClientWebFront(val client: FSClientFrontInterface, val port: Int = 8080)
                 sss = sss.dropLast(1)
                 sss += "},"
             }
-            sss = sss.dropLast(1)
+            if (sss.length > 1) sss = sss.dropLast(1)
             sss += "]"
 
             // Set the content type and character encoding for the response
